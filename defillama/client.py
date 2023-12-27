@@ -143,53 +143,68 @@ class DefiLlamaClient:
         
         """
         return self._get(ApiSectionsEnum.TVL, "v2", "chains")
+    
+    
+    def get_stablecoins(self, include_prices: bool = True) -> List[Dict[Any, Any]]:
+        """
+        List all stablecoins along with their circulating ammounts.
 
-    def get_stablecoins(self, include_prices: bool = True):
-        "include prices -> query params"
-        r = self.session.get(
-            f"{self._stablecoins_url}/stablecoins",
-            params={"includePrices": include_prices},
-        )
-        return self._handle_response(r)
+        Parameters:
+            include_prices (bool, optional): Whether to include current stablecoin prices. Defaults to True.
 
-    def get_current_stablecoins_mcap(
+        Returns:
+            List[Dict[Any, Any]]: A list of dictionaries representing the stablecoins.
+        """
+        return self._get(ApiSectionsEnum.STABLECOINS, "stablecoins", includePrices=include_prices)
+
+
+    def get_current_stablecoins_market_cap(
         self,
     ):
-        """stablecoin query params"""
-        r = self.session.get(
-            f"{self._stablecoins_url}/stablecoinchains",
-        )
-        return self._handle_response(r)
+        """
+        Retrieves the current market capitalization of stablecoins on each chain.
 
-    def get_historical_stablecoins_mcap(self, stablecoin_id: int):
-        """stablecoin query params"""
-        r = self.session.get(
-            f"{self._stablecoins_url}/stablecoincharts/all",
-            params={"stablecoin": stablecoin_id},
-        )
-        return self._handle_response(r)
+        Returns:
+            float: The total market capitalization of stablecoins.
+        """
+        return self._get(ApiSectionsEnum.STABLECOINS, "stablecoinchains")
 
-    def get_historical_stablecoins_mcap_on_chain(
+    def get_stablecoins_historical_market_cap(self, stablecoin_id: int):
+        """
+        Retrieves the historical market capitalization data for a specific stablecoin.
+
+        Parameters:
+            stablecoin_id (int): The ID of the stablecoin.  Can be obtained from /stablecoins
+
+        Returns:
+            The historical market capitalization data for the specified stablecoin.
+        """
+        return self._get(ApiSectionsEnum.STABLECOINS, "stablecoincharts", 'all', stablecoin=stablecoin_id)
+
+    def get_stablecoins_historical_martket_cap_in_chain(
         self, chain: str = "Ethereum", stablecoin_id: int = 1
     ):
-        """stablecoin query params"""
-        r = self.session.get(
-            f"{self._stablecoins_url}/stablecoincharts/all",
-            params={"stablecoin": stablecoin_id, "chain": chain},
-        )
-        return self._handle_response(r)
+        """Get the historical market cap and distribution of stablecoins in the specified blockchain.
 
-    def get_historical_stablecoins_mcap_and_distribution(self, stablecoin_id: int = 1):
-        """stablecoin query params"""
-        r = self.session.get(
-            f"{self._stablecoins_url}/stablecoin/{stablecoin_id}",
-        )
-        return self._handle_response(r)
+        Parameters:
+            chain (str, optional): The name of the blockchain. Defaults to "Ethereum".
+            stablecoin_id (int, optional): The ID of the stablecoin. Defaults to 1.
 
-    def get_historical_stablecoins_prices(self):
-        """stablecoin query params"""
-        r = self.session.get(
-            f"{self._stablecoins_url}/stablecoinprices",
-        )
-        return self._handle_response(r)
+        Returns:
+            The historical market cap of the stablecoin in the specified blockchain.
+        """
+        return self._get(ApiSectionsEnum.STABLECOINS, "stablecoincharts", chain, stablecoin=stablecoin_id)
+
+    def get_stablecoins_historical_market_cap_and_chain_distribution(self, stablecoin_id: int = 1):
+        return self._get(ApiSectionsEnum.STABLECOINS, "stablecoin", stablecoin_id)
+ 
+
+    def get_stablecoins_historical_prices(self):
+        return self._get(ApiSectionsEnum.STABLECOINS, "stablecoinprices")
+
+    def get_pools(self):
+        return self._get(ApiSectionsEnum.YIELDS, "pools")
+    
+    def get_pool_historical_apy_and_tvl(self, pool_id: int):
+        return self._get(ApiSectionsEnum.YIELDS, "chart", pool_id)
 
