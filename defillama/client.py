@@ -20,6 +20,25 @@ class ApiSectionsEnum(str, enum.Enum):
     FEES = "fees"
 
 
+class DataTypeEnum(str, enum.Enum):
+    dailyVolume = "dailyVolume"
+    totalVolume = "totalVolume"
+
+
+class OptionsDataTypeEnum(str, enum.Enum):
+    dailyPremiumVolume = "dailyPremiumVolume"
+    totalPremiumVolume = "totalPremiumVolume"
+    dailyNotionalVolume = "dailyNotionalVolume"
+    totalNotionalVolume = "totalNotionalVolume"
+
+
+class FeesDataTypeEnum(str, enum.Enum):
+    dailyFees = "dailyFees"
+    totalFees = "totalFees"
+    dailyRevenue = "dailyRevenue"
+    totalRevenue = "totalRevenue"
+
+
 class DefiLlamaClient:
     def __init__(self, **kwargs) -> None:
         self._urls = {
@@ -36,12 +55,39 @@ class DefiLlamaClient:
         if "headers" in kwargs:
             self._session.headers.update(kwargs["headers"])
 
-    def _resolve_api_url(self, section: str) -> str:
+    def _resolve_api_url(self, section: ApiSectionsEnum) -> str:
+        """
+        Resolves the API URL for the specified section.
+
+        Parameters:
+            section (ApiSectionsEnum): The section for which to resolve the API URL.
+
+        Returns:
+            str: The resolved API URL.
+
+        Raises:
+            ValueError: If the specified section is not valid.
+        """
+
         if section not in self._urls.keys():
             raise ValueError(f"Invalid section: {section}")
         return self._urls[section]
 
-    def _build_endpoint_url(self, section: str, endpoint: str, *args) -> str:
+    def _build_endpoint_url(
+        self, section: ApiSectionsEnum, endpoint: str, *args
+    ) -> str:
+        """
+        Builds and returns the endpoint URL for the given API section, endpoint, and optional arguments.
+
+        Parameters:
+            section (ApiSectionsEnum): The API section.
+            endpoint (str): The endpoint.
+            *args: Optional arguments.
+
+        Returns:
+            str: The built endpoint URL.
+        """
+
         url = f"{self._resolve_api_url(section)}/{endpoint}"
         if args:
             url += "/" + "/".join(args)
@@ -49,11 +95,29 @@ class DefiLlamaClient:
 
     @property
     def session(self) -> requests.Session:
+        """
+        Getter method for the session property.
+
+        Returns:
+            requests.Session: The session property.
+        """
         return self._session
 
     def _get(
         self, section: ApiSectionsEnum, endpoint: str, *args, **query_params
     ) -> requests.Response:
+        """
+        Sends a GET request to the specified API endpoint.
+
+        Parameters:
+            section (ApiSectionsEnum): The section of the API to send the request to.
+            endpoint (str): The endpoint of the API to send the request to.
+            args: Variable length argument list.
+            query_params: Keyword arguments containing the query parameters for the request.
+
+        Returns:
+            requests.Response: The response object returned by the API.
+        """
         r = self.session.get(
             self._build_endpoint_url(section, endpoint, *args),
             params=query_params,
@@ -257,7 +321,7 @@ class DefiLlamaClient:
         self,
         exclude_total_data_chart: bool = True,
         exclude_total_data_chart_breakdown: bool = True,
-        dataType: str = "dailyVolume",
+        dataType: DataTypeEnum = DataTypeEnum.dailyVolume,
     ):
         return self._get(
             ApiSectionsEnum.VOLUMES,
@@ -273,7 +337,7 @@ class DefiLlamaClient:
         chain: str,
         exclude_total_data_chart: bool = True,
         exclude_total_data_chart_breakdown: bool = True,
-        dataType: str = "dailyVolume",
+        dataType: DataTypeEnum = DataTypeEnum.dailyVolume,
     ):
         return self._get(
             ApiSectionsEnum.VOLUMES,
@@ -283,4 +347,103 @@ class DefiLlamaClient:
             excludeTotalDataChart=exclude_total_data_chart,
             excludeTotalDataChartBreakdown=exclude_total_data_chart_breakdown,
             dataType=dataType,
+        )
+
+    def get_summary_of_dex_volume_with_historical_data(
+        self,
+        protocol: str,
+        exclude_total_data_chart: bool = True,
+        exclude_total_data_chart_breakdown: bool = False,
+        dataType: DataTypeEnum = DataTypeEnum.dailyVolume,
+    ):
+        return self._get(
+            ApiSectionsEnum.VOLUMES,
+            "summary",
+            "dexs",
+            protocol,
+            excludeTotalDataChart=exclude_total_data_chart,
+            excludeTotalDataChartBreakdown=exclude_total_data_chart_breakdown,
+            dataType=dataType,
+        )
+
+    def get_overview_dexes_options(
+        self,
+        exclude_total_data_chart: bool = True,
+        exclude_total_data_chart_breakdown: bool = True,
+        dataType: OptionsDataTypeEnum = OptionsDataTypeEnum.dailyPremiumVolume,
+    ):
+        return self._get(
+            ApiSectionsEnum.VOLUMES,
+            "overview",
+            "options",
+            excludeTotalDataChart=exclude_total_data_chart,
+            excludeTotalDataChartBreakdown=exclude_total_data_chart_breakdown,
+            dataType=dataType,
+        )
+
+    def get_overview_dexes_options_for_chain(
+        self,
+        chain: str = "ethereum",
+        exclude_total_data_chart: bool = True,
+        exclude_total_data_chart_breakdown: bool = True,
+        dataType: OptionsDataTypeEnum = OptionsDataTypeEnum.dailyPremiumVolume,
+    ):
+        return self._get(
+            ApiSectionsEnum.VOLUMES,
+            "overview",
+            "options",
+            chain,
+            excludeTotalDataChart=exclude_total_data_chart,
+            excludeTotalDataChartBreakdown=exclude_total_data_chart_breakdown,
+            dataType=dataType,
+        )
+
+    def get_summary_of_options_volume_with_historical_data(
+        self,
+        protocol: str = "lyra",
+        dataType: OptionsDataTypeEnum = OptionsDataTypeEnum.dailyPremiumVolume,
+    ):
+        return self._get(
+            ApiSectionsEnum.VOLUMES, "summary", "options", protocol, dataType=dataType
+        )
+
+    def get_fees_and_revenues_for_all_protocols(
+        self,
+        exclude_total_data_chart: bool = True,
+        exclude_total_data_chart_breakdown: bool = True,
+        dataType: FeesDataTypeEnum = FeesDataTypeEnum.dailyFees,
+    ):
+        return self._get(
+            ApiSectionsEnum.FEES,
+            "overview",
+            "fees",
+            excludeTotalDataChart=exclude_total_data_chart,
+            excludeTotalDataChartBreakdown=exclude_total_data_chart_breakdown,
+            dataType=dataType,
+        )
+
+    def get_fees_and_revenues_for_all_protocols_for_chain(
+        self,
+        chain: str = "ethereum",
+        exclude_total_data_chart: bool = True,
+        exclude_total_data_chart_breakdown: bool = True,
+        dataType: FeesDataTypeEnum = FeesDataTypeEnum.dailyFees,
+    ):
+        return self._get(
+            ApiSectionsEnum.FEES,
+            "overview",
+            "fees",
+            chain,
+            excludeTotalDataChart=exclude_total_data_chart,
+            excludeTotalDataChartBreakdown=exclude_total_data_chart_breakdown,
+            dataType=dataType,
+        )
+
+    def get_summary_of_protocols_fees_and_revenue(
+        self,
+        protocol: str = "lyra",
+        dataType: FeesDataTypeEnum = FeesDataTypeEnum.dailyFees,
+    ):
+        return self._get(
+            ApiSectionsEnum.FEES, "summary", "fees", protocol, dataType=dataType
         )
