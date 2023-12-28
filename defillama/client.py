@@ -1,4 +1,6 @@
+import datetime
 import enum
+import json
 from typing import Any, Dict, List
 import requests
 import pprint
@@ -90,7 +92,7 @@ class DefiLlamaClient:
 
         url = f"{self._resolve_api_url(section)}/{endpoint}"
         if args:
-            url += "/" + "/".join(args)
+            url += "/" + "/".join([str(arg) for arg in args])
         return url
 
     @property
@@ -447,3 +449,128 @@ class DefiLlamaClient:
         return self._get(
             ApiSectionsEnum.FEES, "summary", "fees", protocol, dataType=dataType
         )
+
+    def get_current_prices_of_tokens_by_contract_address(
+        self,
+        coins: str = "ethereum:0xdF574c24545E5FfEcb9a659c229253D4111d87e1,coingecko:ethereum,bsc:0x762539b45a1dcce3d36d080f74d1aed37844b878,ethereum:0xdB25f211AB05b1c97D595516F45794528a807ad8",
+        search_width: str = "6h",
+    ):
+        """
+        The goal of this API is to price as many tokens as possible, including exotic ones that never get traded, which makes them impossible to price by looking at markets.
+
+        The base of our data are prices pulled from coingecko, which is then extended through multiple means:
+
+        We price all bridged tokens by using the price of the token in it's original chain, so we fetch all bridged versions of USDC on arbitrum, fantom, avax... and price all them using the price for the token on Ethereum, which we know. Right now we support 10 different bridging protocols.
+
+        We have multiple adapters to price specialized sets of tokens by running custom code:
+
+        We price yearn's yToken LPs by checking how much underlying token can be withdrawn for each LP
+
+        Aave, compound and euler LP tokens are also priced based on their relationship against underlying tokens
+
+        Uniswap, curve, balancer and stargate LPs are priced using the underlying tokens in each pair
+
+        GMX's GLP token is priced based on the value of tokens given on withdrawal (which includes calculations based on trader's PnL)
+
+        Synthetix tokens are priced using forex prices of the coin they are pegged to
+
+        For tokens that we haven't been able to price in any other way, we find the pool with most liquidity for each on uniswap, curve and serum and then use the prices provided on those exchanges.
+
+        Unlike all the other tokens, we can't confirm that these prices are correct, so we only ingest the ones that have sufficient liquidity and, even in that case, we attach a confidence value to them that is related to the depth of liquidity and which represents our confidence in the quality of each price. API consumers can choose to filter out prices with low confidence values.
+
+        Our API server is fully open source and we are constantly adding more pricing adapters, extending the amount of tokens we support.
+
+        Tokens are queried using {chain}:{address}, where chain is an identifier such as ethereum, bsc, polygon, avax... You can also get tokens by coingecko id by setting coingecko as the chain, eg: coingecko:ethereum, coingecko:bitcoin. Examples:
+
+        ethereum:0xdF574c24545E5FfEcb9a659c229253D4111d87e1
+        bsc:0x762539b45a1dcce3d36d080f74d1aed37844b878
+        coingecko:ethereum
+        arbitrum:0x4277f8f2c384827b5273592ff7cebd9f2c1ac258
+        """
+
+        return self._get(
+            ApiSectionsEnum.COINS, "prices", "current", coins, searchWidth=search_width
+        )
+
+    def get_historical_prices_of_tokens_by_contract_address(
+        self,
+        coins: str = "ethereum:0xdF574c24545E5FfEcb9a659c229253D4111d87e1,coingecko:ethereum,bsc:0x762539b45a1dcce3d36d080f74d1aed37844b878,ethereum:0xdB25f211AB05b1c97D595516F45794528a807ad8",
+        timestamp: int = 1648680149,
+        search_width: str = "6h",
+    ):
+        return self._get(
+            ApiSectionsEnum.COINS,
+            "prices",
+            "historical",
+            timestamp,
+            coins,
+            searchWidth=search_width,
+        )
+
+    def get_batch_historical_prices(
+        self,
+        coins: dict = {
+            "avax:0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e": [1666876743, 1666862343],
+            "coingecko:ethereum": [1666869543, 1666862343],
+        },
+        search_width: str = "6h",
+    ):
+        return self._get(
+            ApiSectionsEnum.COINS,
+            "batchHistorical",
+            coins=json.dumps(coins),
+            searchWidth=search_width,
+        )
+
+    def get_token_prices_candle(
+        self,
+        coins: str = "ethereum:0xdF574c24545E5FfEcb9a659c229253D4111d87e1,coingecko:ethereum,bsc:0x762539b45a1dcce3d36d080f74d1aed37844b878,ethereum:0xdB25f211AB05b1c97D595516F45794528a807ad8",
+        start: int = None,
+        end: int = None,
+        span: int = 10,
+        period: str = "24h",
+        search_width: str = None,
+    ):
+        if start is None:
+            start = (
+                datetime.datetime.now().timestamp()
+                - datetime.timedelta(days=90).total_seconds()
+            )
+
+        return self._get(
+            ApiSectionsEnum.COINS,
+            "chart",
+            coins,
+            start=start,
+            end=end,
+            span=span,
+            period=period,
+            searchWidth=search_width,
+        )
+
+    def get_percentage_change_in_coin_price(
+        self,
+        coins: str = "ethereum:0xdF574c24545E5FfEcb9a659c229253D4111d87e1,coingecko:ethereum,bsc:0x762539b45a1dcce3d36d080f74d1aed37844b878,ethereum:0xdB25f211AB05b1c97D595516F45794528a807ad8",
+        timestamp: int = None,
+        look_forward: bool = False,
+        period: str = "24h",
+    ):
+        return self._get(
+            ApiSectionsEnum.COINS,
+            "percentage",
+            coins,
+            timestamp=timestamp,
+            lookForward=look_forward,
+            period=period,
+        )
+
+    def get_earliest_timestamp_price_record_for_coins(
+        self,
+        coins: str = "ethereum:0xdF574c24545E5FfEcb9a659c229253D4111d87e1,coingecko:ethereum,bsc:0x762539b45a1dcce3d36d080f74d1aed37844b878,ethereum:0xdB25f211AB05b1c97D595516F45794528a807ad8",
+    ):
+        return self._get(ApiSectionsEnum.COINS, "prices", "first", coins)
+
+    def get_the_closest_block_to_timestamp(
+        self, chain: str = "ethereum", timestamp: int = 1648680149
+    ):
+        return self._get(ApiSectionsEnum.COINS, "block", chain, timestamp)
