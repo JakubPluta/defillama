@@ -9,7 +9,7 @@ import pprint
 from exc import InvalidResponseDataException, InvalidResponseStatusCodeException
 from utils import get_retry_session
 from log import get_logger
-
+from slugify import slugify
 
 log = get_logger(__name__)
 
@@ -94,7 +94,7 @@ class DefiLlamaClient:
 
         url = f"{self._resolve_api_url(section)}/{endpoint}"
         if args:
-            url += "/" + "/".join([str(arg) for arg in args])
+            url += "/" + "/".join([str(arg) for arg in args if arg])
         return url
 
     @property
@@ -170,14 +170,14 @@ class DefiLlamaClient:
         return list({x['slug'] for x in self._get(ApiSectionsEnum.TVL, "protocols")})
     
     @cached_property
-    def bridges(self) -> List[str]:
+    def bridges(self) -> Dict[str, str]:
         """
         Retrieves a list of bridge slugs.
 
         Returns:
             List[str]: A list of bridge slugs.
         """
-        return list({x['name'] for x in self._get(ApiSectionsEnum.BRIDGES, "bridges")['bridges']})
+        return {int(x['id']) : x['name'] for x in self._get(ApiSectionsEnum.BRIDGES, "bridges")['bridges']}
     
     @cached_property
     def stablecoins(self) -> Dict[Any, Any]:
@@ -321,6 +321,18 @@ class DefiLlamaClient:
         
         return stablecoin_id
 
+    def _get_bridge_id(self, bridge: Union[str, int]) -> int:
+        if isinstance(bridge, str) and not bridge.isnumeric():
+            bridge_id = next((k for k, v in self.bridges.items() if v == bridge), None)
+            if bridge_id is None:
+                raise ValueError(f"Invalid bridge: {bridge}. Available bridges: {self.bridges}")
+        else:
+            bridge_id = int(bridge)
+        
+        if bridge_id not in self.bridges:
+            raise ValueError(f"Invalid bridge: {bridge}. Available bridges: {self.bridges}")
+        return bridge_id
+
     def get_stablecoins_historical_market_cap(self, stablecoin: Union[str, int]) -> List[Dict[Any, Any]]:
         """
         Retrieves the historical market capitalization data for a specific stablecoin.
@@ -427,31 +439,124 @@ class DefiLlamaClient:
             
         return self._get(ApiSectionsEnum.YIELDS, "chart", pool_id)
 
-    def get_bridges(self, include_chains: bool = True):
+    def get_bridges(self, include_chains: bool = True) -> List[Dict[Any, Any]]:
+        """
+        Retrieves a list of bridges from the API.
+
+        Params:
+            include_chains (bool, optional): Whether to include current previous day volume breakdown by chain. Defaults to True.
+            
+
+        Returns:
+            List[Dict[Any, Any]]: A list of dictionaries representing the bridges.
+        """
         return self._get(
             ApiSectionsEnum.BRIDGES, "bridges", includeChains=include_chains
         )['bridges']
+        
 
-    def get_bridge(self, bridge_id: int):
-        return self._get(ApiSectionsEnum.BRIDGES, "bridge", bridge_id)
+    def get_bridge(self, bridge: Union[str, int]) -> Dict[Any, Any]:
+        """
+        Get the summary od bridge volume and volume breakdown by chain.
+        
+        Parameters:
+            bridge (Union[str, int]): The ID or name of the bridge.
+        
+        Returns:
+            The summary od bridge volume and volume breakdown by chain.
+        
+        Raises:
+            ValueError: If the provided bridge is invalid or not found in the available bridges.
+        """
+        return self._get(ApiSectionsEnum.BRIDGES, "bridge", self._get_bridge_id(bridge))
+    
 
-    def get_bridge_volume(self, chain: str, bridge_id: int):
+    def get_bridge_volume(self, chain: str, bridge: Union[str, int] = None) -> List[Dict[Any, Any]]:
+        """
+        Retrieves the volume of a bridge in a specific chain.
+
+        Parameters:
+            chain (str): The name of the chain.
+            bridge (Union[str, int]): The name or ID of the bridge.
+
+        Raises:
+            ValueError: If the specified chain is not valid or the bridge is not found.
+
+        Returns:
+            The volume of the bridge in the specified chain.
+        """
+        if chain not in self.chains:
+            raise ValueError(f"Invalid chain: {chain}. Available chains: {self.chains}")
+        
+        if bridge is not None:
+            try:
+                bridge_id = self._get_bridge_id(bridge)
+            except ValueError:
+                log.warning(f"Bridge not found: {bridge}. Setting bridge_id to None.")
+                bridge_id = None
         return self._get(ApiSectionsEnum.BRIDGES, "bridgevolume", chain, id=bridge_id)
 
-    def get_bridge_day_stats(self, timestamp: int, chain: str, bridge_id: int):
+    def get_bridge_day_stats(self, timestamp: int, chain: str, bridge: Union[str, int] = None) -> List[Dict[Any, Any]]:
+        """
+        Get the bridge day statistics for a specific timestamp, chain, and bridge.
+
+        Parameters:
+            timestamp (int): Unix timestamp. Data returned will be for the 24hr period starting at 00:00 UTC that the timestamp lands in.
+            chain (str): The chain for which to retrieve the bridge day statistics.
+            bridge (Union[str, int]): The bridge for which to retrieve the bridge day statistics.
+
+        Returns:
+            List[Dict[Any, Any]]: A list of dictionaries containing the bridge day statistics.
+
+        Raises:
+            ValueError: If an invalid chain is provided or the bridge is not found.
+        """
+        
+        if chain not in self.chains:
+            raise ValueError(f"Invalid chain: {chain}. Available chains: {self.chains}")
+        
+        if bridge is not None:
+            try:
+                bridge_id = self._get_bridge_id(bridge)
+            except ValueError:
+                log.warning(f"Bridge not found: {bridge}. Setting bridge_id to None.")
+                bridge_id = None
         return self._get(
             ApiSectionsEnum.BRIDGES, "bridgedaystats", timestamp, chain, id=bridge_id
         )
 
     def get_bridge_transactions(
         self,
-        bridge_id: int,
-        start_timestamp: int,
-        end_timestamp: int,
-        source_chain: str,
-        address: str,
+        bridge: Union[str, int],
+        start_timestamp: int = None,
+        end_timestamp: int = None,
+        source_chain: str = None,
+        address: str = None,
         limit: int = 200,
-    ):
+    ) -> List[Dict[Any, Any]]:
+        """
+        Retrieves a list of bridge transactions based on the specified criteria.
+
+        Parameters:
+            bridge (Union[str, int]): The identifier or name of the bridge.
+            start_timestamp (int, optional): The start timestamp for filtering transactions. Defaults to None.
+            end_timestamp (int, optional): The end timestamp for filtering transactions. Defaults to None.
+            source_chain (str, optional): The source chain for filtering transactions. Defaults to None.
+            address (str, optional): Returns only transactions with specified address as "from" or "to". 
+                Addresses are quried in the form {chain}:{address}, where chain is an identifier such as ethereum, bsc,
+                polygon, avax... .
+            limit (int, optional): The maximum number of transactions to retrieve. Defaults to 200.
+
+        Returns:
+            List[Dict[Any, Any]]: A list of bridge transactions matching the specified criteria.
+        """
+        
+        bridge_id = self._get_bridge_id(bridge)
+        
+        if source_chain and source_chain not in self.chains:
+            source_chain = None 
+            log.warning("Source chain not found. Setting source chain to None.")      
+        
         return self._get(
             ApiSectionsEnum.BRIDGES,
             "transactions",
@@ -468,7 +573,18 @@ class DefiLlamaClient:
         exclude_total_data_chart: bool = True,
         exclude_total_data_chart_breakdown: bool = True,
         dataType: DataTypeEnum = DataTypeEnum.dailyVolume,
-    ):
+    ) -> Dict[Any, Any]:
+        """
+        List all DEXes with all summaries of their volumes and dataType history.
+
+        Parameters:
+            exclude_total_data_chart (bool, optional): Whether to exclude aggregated chart from response. Defaults to True.
+            exclude_total_data_chart_breakdown (bool, optional): Whether to exclude broken down chart from response. Defaults to True.
+            dataType (DataTypeEnum, optional): The type of data to retrieve. Defaults to DataTypeEnum.dailyVolume. Options: [DataTypeEnum.dailyVolume, DataTypeEnum.totalVolume]
+
+        Returns:
+            The overview of the volume data for DEXs.
+        """
         return self._get(
             ApiSectionsEnum.VOLUMES,
             "overview",
@@ -485,6 +601,23 @@ class DefiLlamaClient:
         exclude_total_data_chart_breakdown: bool = True,
         dataType: DataTypeEnum = DataTypeEnum.dailyVolume,
     ):
+        """
+        List all DEXes for a specific chain with all summaries of their volumes and dataType history.
+
+        Parameters:
+            chain (str): The chain for which to retrieve the volume overview.
+            exclude_total_data_chart (bool, optional): Whether to exclude aggregated chart from response. Defaults to True.
+            exclude_total_data_chart_breakdown (bool, optional): Whether to exclude broken down chart from response. Defaults to True.
+            dataType (DataTypeEnum, optional): The type of data to retrieve. Defaults to DataTypeEnum.dailyVolume. Options: [DataTypeEnum.dailyVolume, DataTypeEnum.totalVolume]
+
+        Raises:
+            ValueError: If an invalid chain is provided.
+
+        Returns:
+            The volume overview for the specified chain from the DEXes API.
+        """
+        if chain not in self.dex_chains:
+            raise ValueError(f"Invalid chain: {chain}. Available chains: {self.dex_chains}")
         return self._get(
             ApiSectionsEnum.VOLUMES,
             "overview",
@@ -494,14 +627,25 @@ class DefiLlamaClient:
             excludeTotalDataChartBreakdown=exclude_total_data_chart_breakdown,
             dataType=dataType,
         )
+        
+    @cached_property
+    def dex_protocols(self):
+        return [slugify(x['name']) for x in self.get_dexes_volume_overview()['protocols']]
+    
+    @cached_property
+    def dex_chains(self):
+        return self.get_dexes_volume_overview()['allChains']
 
     def get_summary_of_dex_volume_with_historical_data(
         self,
         protocol: str,
         exclude_total_data_chart: bool = True,
-        exclude_total_data_chart_breakdown: bool = False,
+        exclude_total_data_chart_breakdown: bool = True,
         dataType: DataTypeEnum = DataTypeEnum.dailyVolume,
     ):
+        if protocol not in self.dex_protocols:
+            raise ValueError(f"Invalid protocol: {protocol}. Available protocols: {self.dex_protocols}")
+        
         return self._get(
             ApiSectionsEnum.VOLUMES,
             "summary",
