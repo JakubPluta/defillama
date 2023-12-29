@@ -1,7 +1,9 @@
 import datetime
 import enum
+from functools import cached_property, lru_cache
 import json
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Union
+import uuid
 import requests
 import pprint
 from exc import InvalidResponseDataException, InvalidResponseStatusCodeException
@@ -44,13 +46,13 @@ class FeesDataTypeEnum(str, enum.Enum):
 class DefiLlamaClient:
     def __init__(self, **kwargs) -> None:
         self._urls = {
-            "tvl": "https://api.llama.fi",
-            "coins": "https://coins.llama.fi",
-            "stablecoins": "https://stablecoins.llama.fi",
-            "yields": "https://yields.llama.fi",
-            "bridges": "https://bridges.llama.fi",
-            "volumes": "https://api.llama.fi",
-            "fees": "https://api.llama.fi",
+            ApiSectionsEnum.TVL: "https://api.llama.fi",
+            ApiSectionsEnum.COINS: "https://coins.llama.fi",
+            ApiSectionsEnum.STABLECOINS: "https://stablecoins.llama.fi",
+            ApiSectionsEnum.YIELDS: "https://yields.llama.fi",
+            ApiSectionsEnum.BRIDGES: "https://bridges.llama.fi",
+            ApiSectionsEnum.VOLUMES: "https://api.llama.fi",
+            ApiSectionsEnum.FEES: "https://api.llama.fi",
         }
         self._session: requests.Session = get_retry_session()
 
@@ -146,42 +148,109 @@ class DefiLlamaClient:
             raise InvalidResponseDataException(f"Invalid data: {response.text}") from ve
         return data
 
+    @cached_property
+    def chains(self) -> List[str]:
+        """
+        Retrieves a list of chain slugs
+
+        Returns:
+            List[str]: The list of chains slugs.
+        """
+        return list({x['name'] for x in self._get(ApiSectionsEnum.TVL, "v2", "chains")})
+    
+    @cached_property
+    def protocols(self) -> List[str]:
+        """Retrieves a list of protocols slugs. 
+
+
+        Returns:
+            A list of strings representing the slugs of the protocols.
+
+        """
+        return list({x['slug'] for x in self._get(ApiSectionsEnum.TVL, "protocols")})
+    
+    @cached_property
+    def bridges(self) -> List[str]:
+        """
+        Retrieves a list of bridge slugs.
+
+        Returns:
+            List[str]: A list of bridge slugs.
+        """
+        return list({x['name'] for x in self._get(ApiSectionsEnum.BRIDGES, "bridges")['bridges']})
+    
+    @cached_property
+    def stablecoins(self) -> Dict[Any, Any]:
+        """
+        Returns a list of dictionaries representing stablecoins.
+
+        Returns:
+            Dict[Any, Any]: A list of dictionaries representing the 
+            stablecoins. Each dictionary contains the 'id' and 'symbol' of a stablecoin.
+        """
+        return {int(x['id']) : x['symbol'] for x in self._get(ApiSectionsEnum.STABLECOINS, "stablecoins")['peggedAssets']}
+    @cached_property
+    def pools(self) -> Dict[Any, Any]:
+        """
+        Returns a dictionary of pools where the keys are the pool IDs and the values are the corresponding symbols.
+        
+        Returns:
+            Dict[Any, Any]: A dictionary of pools where the keys are the pool IDs and the values are the corresponding symbols.
+        """
+        return {x['pool']: x['symbol'] for x in self._get(ApiSectionsEnum.YIELDS, "pools")['data']}
+    
     def get_protocols(self) -> List[Dict[Any, Any]]:
-        """List all protocols on defillama along with their tvl."""
+        """Retrieves all protocols on Defi Llama along with their TVL.
+
+        Returns:
+            A list of dictionaries representing the protocols. 
+            Each dictionary contains key-value pairs representing the protocol information.
+        """
+
         return self._get(ApiSectionsEnum.TVL, "protocols")
 
     def get_protocol(self, protocol: str) -> Dict[Any, Any]:
         """Get historical TVL of a protocol and breakdowns by token and chain.
 
         Parameters:
-            protocol (str): The protocol slug to retrieve.
+            protocol (str): The protocol slug to retrieve. See available protocols by using DefiLlamaClient.protocols
 
         Returns:
             The historical TVL of the protocol and breakdowns by token and chain.
         """
+        if protocol not in self.protocols:
+            raise ValueError(f"Invalid protocol: {protocol}. Available protocols: {self.protocols}")
         return self._get(ApiSectionsEnum.TVL, "protocol", protocol)
 
+
     def get_historical_tvl_of_defi_on_all_chains(self) -> List[Dict[Any, Any]]:
-        """
-        Retrieves the historical total value locked (TVL) of decentralized finance (DeFi) on all chains.
+        """Retrieves the historical total value locked (TVL) of decentralized finance (DeFi) on all chains.
+        It excludes liquid staking and double counted tvl.
 
         Returns:
             A list of dictionaries representing the historical TVL data for each chain. Each dictionary contains
             the date and the corresponding TVL value.
+            
+        Response:
+            [{'date': 1530230400, 'tvl': 20541.94079040033}, {'date': 1530316800, 'tvl': 20614.458266145004}]
         """
         return self._get(ApiSectionsEnum.TVL, "v2", "historicalChainTvl")
 
     def get_historical_tvl_for_chain(self, chain: str) -> List[Dict[Any, Any]]:
-        """
-        Returns the historical total value locked (TVL) for a specific chain.
+        """Returns the historical total value locked (TVL) for a specific chain.
 
         Parameters:
-            chain (str): chain slug, you can get these from /chains or the chains property on /protocols
+            chain (str): chain slug, you can get these from DefiLlamaClient.chains
 
         Returns:
             The historical TVL for the specified chain. The returned data is a list of dictionaries, where each
             dictionary contains the date and the corresponding TVL value.
+            
+        Response:
+            [{'date': 1626220800, 'tvl': 68353955.52897093}, {'date': 1626307200, 'tvl': 62829548.17372862}]
         """
+        if chain not in self.chains:
+            raise ValueError(f"Invalid chain: {chain}. Available chains: {self.chains}")
 
         return self._get(ApiSectionsEnum.TVL, "v2", "historicalChainTvl", chain)
 
@@ -195,7 +264,8 @@ class DefiLlamaClient:
         Returns:
             int: The current TVL for the specified protocol.
         """
-
+        if protocol not in self.protocols:
+            raise ValueError(f"Invalid protocol: {protocol}. Available protocols: {self.protocols}")
         return self._get(ApiSectionsEnum.TVL, "tvl", protocol)
 
     def get_current_tvl_of_all_chains(self) -> List[Dict[Any, Any]]:
@@ -220,48 +290,77 @@ class DefiLlamaClient:
         """
         return self._get(
             ApiSectionsEnum.STABLECOINS, "stablecoins", includePrices=include_prices
-        )
+        )['peggedAssets']
 
     def get_current_stablecoins_market_cap(
         self,
-    ):
+    ) -> List[Dict[Any, Any]]:
         """
         Retrieves the current market capitalization of stablecoins on each chain.
-
+        
         Returns:
-            float: The total market capitalization of stablecoins.
+            The current market capitalization of stablecoins on each chain.
+            
         """
         return self._get(ApiSectionsEnum.STABLECOINS, "stablecoinchains")
+    
+    def _get_stablecoin_id(self, stablecoin: Union[str, int]) -> int:
+        if isinstance(stablecoin, str) and not stablecoin.isnumeric():
+            stablecoin_id = next((k for k, v in self.stablecoins.items() if v == stablecoin), None)
+            if stablecoin_id is None:
+                raise ValueError(f"Invalid stablecoin: {stablecoin}. Available stablecoins: {self.stablecoins}")
+        elif isinstance(stablecoin, int):
+            stablecoin_id = stablecoin
+        elif isinstance(stablecoin, str):
+            stablecoin_id = int(stablecoin)
+        else:
+            raise ValueError("Invalid stablecoin")
 
-    def get_stablecoins_historical_market_cap(self, stablecoin_id: int):
+        if stablecoin_id not in self.stablecoins:
+            raise ValueError(f"Invalid stablecoin: {stablecoin}. Available stablecoins: {self.stablecoins}")
+        
+        return stablecoin_id
+
+    def get_stablecoins_historical_market_cap(self, stablecoin: Union[str, int]) -> List[Dict[Any, Any]]:
         """
         Retrieves the historical market capitalization data for a specific stablecoin.
 
         Parameters:
-            stablecoin_id (int): The ID of the stablecoin.  Can be obtained from /stablecoins
+            stablecoin_id (int, str): The ID or name of the stablecoin.
 
         Returns:
             The historical market capitalization data for the specified stablecoin.
         """
+        
         return self._get(
             ApiSectionsEnum.STABLECOINS,
             "stablecoincharts",
             "all",
-            stablecoin=stablecoin_id,
+            stablecoin=self._get_stablecoin_id(stablecoin),
         )
 
     def get_stablecoins_historical_martket_cap_in_chain(
-        self, chain: str = "Ethereum", stablecoin_id: int = 1
-    ):
-        """Get the historical market cap and distribution of stablecoins in the specified blockchain.
+        self, chain: str, stablecoin: Union[str, int],
+    ) -> List[Dict[Any, Any]]:
+        """
+        Get the historical market cap and distribution of stablecoins in the specified blockchain.
 
-        Parameters:
-            chain (str, optional): The name of the blockchain. Defaults to "Ethereum".
-            stablecoin_id (int, optional): The ID of the stablecoin. Defaults to 1.
+        Params:
+            chain (str): The name of the chain.
+            stablecoin (Union[str, int]): The name or ID of the stablecoin.
+
+        Raises:
+            ValueError: If the chain is invalid or the stablecoin is not found.
 
         Returns:
-            The historical market cap of the stablecoin in the specified blockchain.
+            The historical market capitalization of the stablecoin.
         """
+
+        if chain not in self.chains:
+            raise ValueError(f"Invalid chain: {chain}. Available chains: {self.chains}")
+        
+        stablecoin_id = self._get_stablecoin_id(stablecoin)
+        
         return self._get(
             ApiSectionsEnum.STABLECOINS,
             "stablecoincharts",
@@ -270,23 +369,68 @@ class DefiLlamaClient:
         )
 
     def get_stablecoins_historical_market_cap_and_chain_distribution(
-        self, stablecoin_id: int = 1
-    ):
+        self, stablecoin: Union[str, int]
+    ) -> List[Dict[Any, Any]]:
+        """
+        Get the historical market cap and chain distribution of a stablecoin.
+
+        Parameters:
+            stablecoin (Union[str, int]): The name or ID of the stablecoin.
+
+        Returns:
+            The historical market cap and chain distribution of the stablecoin.
+        """
+        stablecoin_id = self._get_stablecoin_id(stablecoin)
         return self._get(ApiSectionsEnum.STABLECOINS, "stablecoin", stablecoin_id)
 
-    def get_stablecoins_historical_prices(self):
+    def get_stablecoins_historical_prices(self) -> List[Dict[Any, Any]]:
+        """
+        Retrieves the historical prices of stablecoins.
+
+        Returns:
+            A list of historical prices of stablecoins.
+        """
         return self._get(ApiSectionsEnum.STABLECOINS, "stablecoinprices")
 
-    def get_pools(self):
-        return self._get(ApiSectionsEnum.YIELDS, "pools")
+    def get_pools(self) -> List[Dict[Any, Any]]:
+        """
+        Retrieves the latest data for all pools, including enriched information 
+        such as predictions
 
-    def get_pool_historical_apy_and_tvl(self, pool_id: int):
+        Returns:
+            A list of dictionaries representing the pools.
+        """
+        return self._get(ApiSectionsEnum.YIELDS, "pools")['data']
+
+    def get_pool_historical_apy_and_tvl(self, pool: str) -> List[Dict[Any, Any]]:
+        """
+        Get the historical APY and TVL for a specific pool.
+
+        Args:
+            pool (str): The ID of the pool or Symbol.
+
+        Returns:
+            List[Dict[Any, Any]]: A list of dictionaries containing the historical APY and TVL data.
+
+        Raises:
+            ValueError: If the pool ID is invalid.
+        """
+        try:
+            uuid.UUID(pool)
+        except ValueError:
+            log.debug(f"Invalid pool id: {pool}")
+            pool_id = next((k for k, v in self.pools.items() if v == pool), None)
+            if pool_id is None:
+                raise ValueError(f"Invalid pool: {pool}. To see available pools, use DefiLlamaClient().pools")
+        else:
+            pool_id = pool
+            
         return self._get(ApiSectionsEnum.YIELDS, "chart", pool_id)
 
     def get_bridges(self, include_chains: bool = True):
         return self._get(
             ApiSectionsEnum.BRIDGES, "bridges", includeChains=include_chains
-        )
+        )['bridges']
 
     def get_bridge(self, bridge_id: int):
         return self._get(ApiSectionsEnum.BRIDGES, "bridge", bridge_id)
