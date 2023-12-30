@@ -199,6 +199,52 @@ class DefiLlamaClient:
         """
         return {x['pool']: x['symbol'] for x in self._get(ApiSectionsEnum.YIELDS, "pools")['data']}
     
+    @cached_property
+    def dex_protocols(self) -> List[str]:
+        """A cached property that returns a list of slugified dex protocol names.
+
+        Returns:
+            list: A list of slugified dex protocol names.
+        """
+        return [slugify(x['name']) for x in self.get_dexes_volume_overview()['protocols']]
+    
+    @cached_property
+    def dex_chains(self) -> List[str]:
+        """Retrieves the 'allChains' property from the result of the `get_dexes_volume_overview` method.
+
+        Returns:
+            The 'allChains' property from the result of the `get_dexes_volume_overview` method.
+        """
+        return [x.lower() for x in self.get_dexes_volume_overview()['allChains']]
+    
+    @cached_property
+    def dex_options_protocols(self) -> List[str]:
+        """Retrieves the 'options' property from the result of the `get_dexes_volume_overview` method.
+
+        Returns:
+            The 'options' property from the result of the `get_dexes_volume_overview` method.
+        """
+        return [slugify(x['name']) for x in self.get_overview_dexes_options()['protocols']]
+    
+    @cached_property
+    def fees_protocols(self) -> List[str]:
+        """Retrieves the 'fees' property from the result of the `get_dexes_volume_overview` method.
+
+        Returns:
+            The 'fees' property from the result of the `get_dexes_volume_overview` method.
+        """
+        return [slugify(x['name']) for x in self.get_fees_and_revenues_for_all_protocols()['protocols']]
+    
+    @cached_property
+    def fees_chains(self) -> List[str]:
+        """Retrieves the 'allChains' property from the result of the `get_fees_and_revenues_for_all_protocols` method.
+
+        Returns:
+            The 'allChains' property from the result of the `get_fees_and_revenues_for_all_protocols` method.
+        """
+        return [x.lower() for x in self.get_fees_and_revenues_for_all_protocols()['allChains']]
+    
+    
     def get_protocols(self) -> List[Dict[Any, Any]]:
         """Retrieves all protocols on Defi Llama along with their TVL.
 
@@ -616,7 +662,7 @@ class DefiLlamaClient:
         Returns:
             The volume overview for the specified chain from the DEXes API.
         """
-        if chain not in self.dex_chains:
+        if chain.lower() not in self.dex_chains:
             raise ValueError(f"Invalid chain: {chain}. Available chains: {self.dex_chains}")
         return self._get(
             ApiSectionsEnum.VOLUMES,
@@ -628,13 +674,7 @@ class DefiLlamaClient:
             dataType=dataType,
         )
         
-    @cached_property
-    def dex_protocols(self):
-        return [slugify(x['name']) for x in self.get_dexes_volume_overview()['protocols']]
-    
-    @cached_property
-    def dex_chains(self):
-        return self.get_dexes_volume_overview()['allChains']
+
 
     def get_summary_of_dex_volume_with_historical_data(
         self,
@@ -642,8 +682,24 @@ class DefiLlamaClient:
         exclude_total_data_chart: bool = True,
         exclude_total_data_chart_breakdown: bool = True,
         dataType: DataTypeEnum = DataTypeEnum.dailyVolume,
-    ):
-        if protocol not in self.dex_protocols:
+    ) -> Dict[Any, Any]:
+        """
+        Get the summary of the DEX volume with historical data.
+
+        Parameters:
+            protocol (str): The protocol slug.
+            exclude_total_data_chart (bool, optional): Whether to exclude aggregated chart from response. Defaults to True.
+            exclude_total_data_chart_breakdown (bool, optional): Whether to exclude broken down chart from response. Defaults to True.
+            dataType (DataTypeEnum, optional): The type of data to retrieve. Defaults to DataTypeEnum.dailyVolume. Options: [DataTypeEnum.dailyVolume, DataTypeEnum.totalVolume]
+
+
+        Returns:
+            The summary of the DEX volume with historical data.
+
+        Raises:
+            ValueError: If the protocol is invalid.
+        """
+        if protocol.lower() not in self.dex_protocols:
             raise ValueError(f"Invalid protocol: {protocol}. Available protocols: {self.dex_protocols}")
         
         return self._get(
@@ -661,7 +717,19 @@ class DefiLlamaClient:
         exclude_total_data_chart: bool = True,
         exclude_total_data_chart_breakdown: bool = True,
         dataType: OptionsDataTypeEnum = OptionsDataTypeEnum.dailyPremiumVolume,
-    ):
+    ) -> Dict[Any, Any]:
+        """
+        List all options dexs along with summaries of their options and dataType history.
+
+        Parameters:
+            exclude_total_data_chart (bool, optional): Whether to exclude aggregated chart from response. Defaults to True.
+            exclude_total_data_chart_breakdown (bool, optional): Whether to exclude broken down chart from response. Defaults to True.
+            dataType (OptionsDataTypeEnum, optional): The type of data to retrieve. One of these: 
+            dailyPremiumVolume, dailyNotionalVolume, totalPremiumVolume, totalNotionalVolume. Defaults to OptionsDataTypeEnum.dailyPremiumVolume.
+
+        Returns:
+            Dict[Any, Any]: The options for the overview dexes.
+        """
         return self._get(
             ApiSectionsEnum.VOLUMES,
             "overview",
@@ -673,11 +741,28 @@ class DefiLlamaClient:
 
     def get_overview_dexes_options_for_chain(
         self,
-        chain: str = "ethereum",
+        chain: str,
         exclude_total_data_chart: bool = True,
         exclude_total_data_chart_breakdown: bool = True,
         dataType: OptionsDataTypeEnum = OptionsDataTypeEnum.dailyPremiumVolume,
     ):
+        """
+        List all options dexs along with summaries of their options and dataType history for specific chain.
+
+        Parameters:
+            chain (str, optional): The chain for which to retrieve the volume overview.
+            exclude_total_data_chart (bool, optional): Whether to exclude aggregated chart from response. Defaults to True.
+            exclude_total_data_chart_breakdown (bool, optional): Whether to exclude broken down chart from response. Defaults to True.
+            dataType (OptionsDataTypeEnum, optional): The type of data to retrieve. One of these: 
+            dailyPremiumVolume, dailyNotionalVolume, totalPremiumVolume, totalNotionalVolume. Defaults to OptionsDataTypeEnum.dailyPremiumVolume.
+
+        Returns:
+            Dict[Any, Any]: The options for the overview dexes.
+        """
+        if chain.lower() not in self.dex_chains:
+            raise ValueError(f"Invalid chain: {chain}. Available chains: {self.dex_chains}")
+        
+        
         return self._get(
             ApiSectionsEnum.VOLUMES,
             "overview",
@@ -688,11 +773,25 @@ class DefiLlamaClient:
             dataType=dataType,
         )
 
-    def get_summary_of_options_volume_with_historical_data(
+    def get_summary_of_options_volume_with_historical_data_for_protocol(
         self,
-        protocol: str = "lyra",
+        protocol: str,
         dataType: OptionsDataTypeEnum = OptionsDataTypeEnum.dailyPremiumVolume,
+        
     ):
+        """
+        Retrieves the summary of options volume with historical data for a given protocol.
+
+        Args:
+            protocol (str): The protocol for which to retrieve the volume data.
+            dataType (OptionsDataTypeEnum, optional): The type of options data to retrieve. Defaults to OptionsDataTypeEnum.dailyPremiumVolume.
+
+        Returns:
+            The summary of options volume data for the specified protocol and data type.
+        """
+        if protocol.lower() not in self.dex_options_protocols:
+            raise ValueError(f"Invalid protocol: {protocol}. Available protocols: {self.dex_options_protocols}")
+        
         return self._get(
             ApiSectionsEnum.VOLUMES, "summary", "options", protocol, dataType=dataType
         )
@@ -702,7 +801,18 @@ class DefiLlamaClient:
         exclude_total_data_chart: bool = True,
         exclude_total_data_chart_breakdown: bool = True,
         dataType: FeesDataTypeEnum = FeesDataTypeEnum.dailyFees,
-    ):
+    ) -> Dict[Any, Any]:
+        """
+        Retrieves the fees and revenues for all protocols.
+
+        Args:
+            exclude_total_data_chart (bool, optional): Whether to exclude the total data chart. Defaults to True.
+            exclude_total_data_chart_breakdown (bool, optional): Whether to exclude the breakdown of the total data chart. Defaults to True.
+            dataType (FeesDataTypeEnum, optional): The type of fees data to retrieve. Defaults to FeesDataTypeEnum.dailyFees.
+
+        Returns:
+            The fees and revenues data for all protocols.
+        """
         return self._get(
             ApiSectionsEnum.FEES,
             "overview",
@@ -714,11 +824,29 @@ class DefiLlamaClient:
 
     def get_fees_and_revenues_for_all_protocols_for_chain(
         self,
-        chain: str = "ethereum",
+        chain: str,
         exclude_total_data_chart: bool = True,
         exclude_total_data_chart_breakdown: bool = True,
         dataType: FeesDataTypeEnum = FeesDataTypeEnum.dailyFees,
-    ):
+    ) -> Dict[Any, Any]:
+        """
+        Retrieves fees and revenues for all protocols for a given chain.
+        
+        Parameters:
+            chain (str): The chain for which to retrieve the fees and revenues.
+            exclude_total_data_chart (bool, optional): Whether to exclude the total data chart. Defaults to True.
+            exclude_total_data_chart_breakdown (bool, optional): Whether to exclude the breakdown of the total data chart. Defaults to True.
+            dataType (FeesDataTypeEnum, optional): The type of fees data to retrieve. Defaults to FeesDataTypeEnum.dailyFees.
+        
+        Raises:
+            ValueError: If an invalid chain is provided.
+        
+        Returns:
+            The fees and revenues data for all protocols on the given chain.
+        """
+        if chain.lower() not in self.fees_chains:
+            raise ValueError(f"Invalid chain: {chain}. Available chains: {self.fees_chains}")
+        
         return self._get(
             ApiSectionsEnum.FEES,
             "overview",
@@ -731,9 +859,25 @@ class DefiLlamaClient:
 
     def get_summary_of_protocols_fees_and_revenue(
         self,
-        protocol: str = "lyra",
+        protocol: str,
         dataType: FeesDataTypeEnum = FeesDataTypeEnum.dailyFees,
-    ):
+    ) -> Dict[Any, Any]:
+        """
+        Retrieves the summary of fees and revenue for a specific protocol.
+
+        Args:
+            protocol (str): The name of the protocol.
+            dataType (FeesDataTypeEnum, optional): The type of fees data to retrieve. 
+            Defaults to FeesDataTypeEnum.dailyFees.
+
+        Raises:
+            ValueError: If the protocol is invalid.
+
+        Returns:
+            dict: The summary of fees and revenue for the specified protocol.
+        """
+        if protocol.lower() not in self.fees_protocols:
+            raise ValueError(f"Invalid protocol: {protocol}. Available protocols: {self.fees_protocols}")
         return self._get(
             ApiSectionsEnum.FEES, "summary", "fees", protocol, dataType=dataType
         )
