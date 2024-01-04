@@ -9,7 +9,7 @@ import requests
 import pprint
 
 from exc import InvalidResponseDataException, InvalidResponseStatusCodeException
-from utils import get_retry_session, timestamp_converter, get_coingecko_coin_ids, read_coingecko_ids_from_file, prepare_coins_for_request
+from utils import get_previous_timestamp, get_retry_session, timestamp_converter, get_coingecko_coin_ids, read_coingecko_ids_from_file, prepare_coins_for_request
 from log import get_logger
 from slugify import slugify
 
@@ -158,7 +158,7 @@ class DefiLlamaClient:
         Returns:
             List[str]: The list of chains slugs.
         """
-        return list({x["name"] for x in self._get(ApiSectionsEnum.TVL, "v2", "chains")})
+        return list({x["name"].lower() for x in self._get(ApiSectionsEnum.TVL, "v2", "chains")})
 
     @cached_property
     def protocols(self) -> List[str]:
@@ -338,7 +338,7 @@ class DefiLlamaClient:
         Response:
             [{'date': 1626220800, 'tvl': 68353955.52897093}, {'date': 1626307200, 'tvl': 62829548.17372862}]
         """
-        if chain not in self.chains:
+        if chain.lower() not in self.chains:
             raise ValueError(f"Invalid chain: {chain}. Available chains: {self.chains}")
 
         return self._get(ApiSectionsEnum.TVL, "v2", "historicalChainTvl", chain)
@@ -473,7 +473,7 @@ class DefiLlamaClient:
             The historical market capitalization of the stablecoin.
         """
 
-        if chain not in self.chains:
+        if chain.lower() not in self.chains:
             raise ValueError(f"Invalid chain: {chain}. Available chains: {self.chains}")
 
         stablecoin_id = self._get_stablecoin_id(stablecoin)
@@ -592,7 +592,7 @@ class DefiLlamaClient:
         Returns:
             The volume of the bridge in the specified chain.
         """
-        if chain not in self.chains:
+        if chain.lower() not in self.chains:
             raise ValueError(f"Invalid chain: {chain}. Available chains: {self.chains}")
 
         if bridge is not None:
@@ -621,7 +621,7 @@ class DefiLlamaClient:
             ValueError: If an invalid chain is provided or the bridge is not found.
         """
 
-        if chain not in self.chains:
+        if chain.lower() not in self.chains:
             raise ValueError(f"Invalid chain: {chain}. Available chains: {self.chains}")
 
         if bridge is not None:
@@ -969,7 +969,7 @@ class DefiLlamaClient:
         Args:
             coins (Union[str, Coin, Dict[str, str], List[Coin], List[Dict[str, str]]]): The tokens to retrieve prices for. 
                 Can be a Coin, a Dict, a list of Coin objects or dictionaries containing token details, or a string with coma separated tokens in format chain:address
-            search_width (str, optional): Time range on either side to find price data, defaults to 6 hours. Defaults to "6h".
+            search_width (str, optional): Time range on either side to find price data, defaults to 6 hours. Defaults to "6h". Can use regular chart candle notion like 4h etc where: W = week, D = day, H = hour, M = minute (not case sensitive)
         Returns:
             The current prices of the tokens specified.
             
@@ -1012,7 +1012,7 @@ class DefiLlamaClient:
         self,
         coins: Union[str, Coin, Dict[str, str], List[Coin], List[Dict[str, str]]],
         timestamp: int,
-        search_width: str = None,
+        search_width: Optional[str] = None,
     ):
         """
         Retrieves the historical prices of tokens by contract address.
@@ -1026,17 +1026,79 @@ class DefiLlamaClient:
             coins (Union[str, Coin, Dict[str, str], List[Coin], List[Dict[str, str]]]): The tokens to retrieve prices for. 
                 Can be a Coin, a Dict, a list of Coin objects or dictionaries containing token details, or a string with coma separated tokens in format chain:address
             timestamp (int, optional): The timestamp to retrieve prices for.
-            search_width (str, optional): Time range on either side to find price data, defaults to 6 hours. Defaults to "6h".
+            search_width (str, optional): Time range on either side to find price data, defaults to 6 hours. Defaults to "6h". Can use regular chart candle notion like 4h etc where: W = week, D = day, H = hour, M = minute (not case sensitive)
         Returns:
             The historical prices of the tokens specified.
             
         Examples:
         
-            # Retrieve the current prices of tokens by contract address
-            >>> client.get_current_prices_of_tokens_by_contract_address("ethereum:0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984,coingecko:ethereum")
+            >>> client.get_historical_prices_of_tokens_by_contract_address("ethereum:0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984,coingecko:ethereum", timestamp=1650000000)
+            >>> client.get_historical_prices_of_tokens_by_contract_address([
+                    {
+                        "chain": "ethereum",
+                        "address": "0xdF574c24545E5FfEcb9a659c229253D4111d87e1",
+                    },
+                    {
+                        "chain": "ethereum",
+                        "address": "0xdB25f211AB05b1c97D595516F45794528a807ad8",
+                    },
+                    {
+                        "chain": "coingecko",
+                        "address": "uniswap",
+                    },
+                    {
+                        "chain": "bsc",
+                        "address": "0x762539b45a1dcce3d36d080f74d1aed37844b878",   
+                    }    
+                ],
+                timestamp=1650000000
+                )
             
-            # Retrieve the current prices of tokens by contract address by providing a list of dictionaries
-            >>> client.get_current_prices_of_tokens_by_contract_address([
+            >>> client.get_historical_prices_of_tokens_by_contract_address([Coin("ethereum", "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984"), Coin("bsc", "0x762539b45a1dcce3d36d080f74d1aed37844b878")], timestamp=1650000000)
+        """
+        
+        coins_to_search = prepare_coins_for_request(coins)
+        return self._get(
+            ApiSectionsEnum.COINS,
+            "prices",
+            "historical",
+            timestamp,
+            coins_to_search,
+            searchWidth=search_width,
+        )
+
+    def get_token_prices_candle(
+        self,
+        coins: Union[str, Coin, Dict[str, str], List[Coin], List[Dict[str, str]]],
+        start: Optional[int] = None,
+        end: Optional[int] = None,
+        span: Optional[int] = None,
+        period: Optional[str] = None,
+        search_width: Optional[str] = None,
+    ):
+        """
+        Retrieves token prices at regular time intervals.
+        
+        To see all available chains use client.chains
+        To see all available coingecko ids use client.get_coingecko_coin_ids()
+        You can use coingecko as a chain, and then use coin gecko ids instead of contract addresses to find a token.
+        Like: coins = "coingecko:uniswap,coingecko:ethereum" or Coin("coingecko:uniswap") or {"chain": "coingecko", "address": "uniswap"}
+
+        Args:
+            coins (Union[str, Coin, Dict[str, str], List[Coin], List[Dict[str, str]]]): The tokens to retrieve prices for. 
+                Can be a Coin, a Dict, a list of Coin objects or dictionaries containing token details, or a string with coma separated tokens in format chain:address
+            start (int, optional): The start timestamp to retrieve prices for. Defaults to None.
+            end (int, optional): The end timestamp to retrieve prices for. Defaults to None.
+            span (int, optional): Number of data points returned, defaults to 0
+            period (str, optional): Duration between data points, defaults to 24 hours
+            search_width (str, optional): Time range on either side to find price data, defaults to 6 hours. Defaults to "6h". Can use regular chart candle notion like 4h etc where: W = week, D = day, H = hour, M = minute (not case sensitive)
+        Returns:
+            The token prices at regular time intervals.
+            
+        Examples:
+        
+            >>> client.get_token_prices_candle("ethereum:0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984,coingecko:ethereum")
+            >>> client.get_token_prices_candle([
                     {
                         "chain": "ethereum",
                         "address": "0xdF574c24545E5FfEcb9a659c229253D4111d87e1",
@@ -1055,39 +1117,16 @@ class DefiLlamaClient:
                     }    
                 ])
             
-            # Retrieve the current prices of tokens by contract address by providing a list of Coin objects
-            >>> client.get_current_prices_of_tokens_by_contract_address([Coin("ethereum", "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984"), Coin("bsc", "0x762539b45a1dcce3d36d080f74d1aed37844b878")])
+            >>> client.get_token_prices_candle([Coin("ethereum", "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984"), Coin("bsc", "0x762539b45a1dcce3d36d080f74d1aed37844b878")])
         """
         
+
+        start = get_previous_timestamp(start) if start else None
         coins_to_search = prepare_coins_for_request(coins)
         return self._get(
             ApiSectionsEnum.COINS,
-            "prices",
-            "historical",
-            timestamp,
-            coins_to_search,
-            searchWidth=search_width,
-        )
-
-    def get_token_prices_candle(
-        self,
-        coins: str = "ethereum:0xdF574c24545E5FfEcb9a659c229253D4111d87e1,coingecko:ethereum,bsc:0x762539b45a1dcce3d36d080f74d1aed37844b878,ethereum:0xdB25f211AB05b1c97D595516F45794528a807ad8",
-        start: int = None,
-        end: int = None,
-        span: int = 10,
-        period: str = "24h",
-        search_width: str = None,
-    ):
-        if start is None:
-            start = (
-                datetime.datetime.now().timestamp()
-                - datetime.timedelta(days=90).total_seconds()
-            )
-
-        return self._get(
-            ApiSectionsEnum.COINS,
             "chart",
-            coins,
+            coins_to_search,
             start=start,
             end=end,
             span=span,
@@ -1097,15 +1136,58 @@ class DefiLlamaClient:
 
     def get_percentage_change_in_coin_price(
         self,
-        coins: str = "ethereum:0xdF574c24545E5FfEcb9a659c229253D4111d87e1,coingecko:ethereum,bsc:0x762539b45a1dcce3d36d080f74d1aed37844b878,ethereum:0xdB25f211AB05b1c97D595516F45794528a807ad8",
-        timestamp: int = None,
+        coins: Union[str, Coin, Dict[str, str], List[Coin], List[Dict[str, str]]],
+        timestamp: Optional[int] = None,
         look_forward: bool = False,
         period: str = "24h",
     ):
+        """
+        Retrieves token price percentage change over time.
+        
+        To see all available chains use client.chains
+        To see all available coingecko ids use client.get_coingecko_coin_ids()
+        You can use coingecko as a chain, and then use coin gecko ids instead of contract addresses to find a token.
+        Like: coins = "coingecko:uniswap,coingecko:ethereum" or Coin("coingecko:uniswap") or {"chain": "coingecko", "address": "uniswap"}
+
+        Args:
+            coins (Union[str, Coin, Dict[str, str], List[Coin], List[Dict[str, str]]]): The tokens to retrieve prices for. 
+                Can be a Coin, a Dict, a list of Coin objects or dictionaries containing token details, or a string with coma separated tokens in format chain:address
+            timestamp (int, optional): The start timestamp to retrieve prices for. Defaults to time now
+            look_forward (bool, optional): Whether you want the duration after your given timestamp or not, defaults to false (looking back)
+            period (str, optional): Duration between data points, defaults to 24 hours
+        Returns:
+            The token price percentage change over time.
+            
+        Examples:
+        
+            >>> client.get_percentage_change_in_coin_price("ethereum:0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984,coingecko:ethereum")
+            >>> client.get_percentage_change_in_coin_price([
+                    {
+                        "chain": "ethereum",
+                        "address": "0xdF574c24545E5FfEcb9a659c229253D4111d87e1",
+                    },
+                    {
+                        "chain": "ethereum",
+                        "address": "0xdB25f211AB05b1c97D595516F45794528a807ad8",
+                    },
+                    {
+                        "chain": "coingecko",
+                        "address": "uniswap",
+                    },
+                    {
+                        "chain": "bsc",
+                        "address": "0x762539b45a1dcce3d36d080f74d1aed37844b878",   
+                    }    
+                ])
+            
+            >>> client.get_percentage_change_in_coin_price([Coin("ethereum", "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984"), Coin("bsc", "0x762539b45a1dcce3d36d080f74d1aed37844b878")])
+        """
+        
+        coins_to_search = prepare_coins_for_request(coins)
         return self._get(
             ApiSectionsEnum.COINS,
             "percentage",
-            coins,
+            coins_to_search,
             timestamp=timestamp,
             lookForward=look_forward,
             period=period,
@@ -1113,11 +1195,67 @@ class DefiLlamaClient:
 
     def get_earliest_timestamp_price_record_for_coins(
         self,
-        coins: str = "ethereum:0xdF574c24545E5FfEcb9a659c229253D4111d87e1,coingecko:ethereum,bsc:0x762539b45a1dcce3d36d080f74d1aed37844b878,ethereum:0xdB25f211AB05b1c97D595516F45794528a807ad8",
+        coins: Union[str, Coin, Dict[str, str], List[Coin], List[Dict[str, str]]],
     ):
+        """
+        Get the earliest timestamped price record for the given coins.
+
+        To see all available chains use client.chains
+        To see all available coingecko ids use client.get_coingecko_coin_ids()
+        You can use coingecko as a chain, and then use coin gecko ids instead of contract addresses to find a token.
+        Like: coins = "coingecko:uniswap,coingecko:ethereum" or Coin("coingecko:uniswap") or {"chain": "coingecko", "address": "uniswap"}
+
+        Args:
+            coins (Union[str, Coin, Dict[str, str], List[Coin], List[Dict[str, str]]]): The tokens to retrieve prices for. 
+                Can be a Coin, a Dict, a list of Coin objects or dictionaries containing token details, or a string with coma separated tokens in format chain:address
+                
+        Returns:
+            The earliest timestamped price record for the given coins.
+            
+        Examples:
+        
+            >>> client.get_earliest_timestamp_price_record_for_coins("ethereum:0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984,coingecko:ethereum")
+            >>> client.get_earliest_timestamp_price_record_for_coins([
+                    {
+                        "chain": "ethereum",
+                        "address": "0xdF574c24545E5FfEcb9a659c229253D4111d87e1",
+                    },
+                    {
+                        "chain": "ethereum",
+                        "address": "0xdB25f211AB05b1c97D595516F45794528a807ad8",
+                    },
+                    {
+                        "chain": "coingecko",
+                        "address": "uniswap",
+                    },
+                    {
+                        "chain": "bsc",
+                        "address": "0x762539b45a1dcce3d36d080f74d1aed37844b878",   
+                    }    
+                ])
+            
+            >>> client.get_earliest_timestamp_price_record_for_coins([Coin("ethereum", "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984"), Coin("bsc", "0x762539b45a1dcce3d36d080f74d1aed37844b878")])
+
+        """
         return self._get(ApiSectionsEnum.COINS, "prices", "first", coins)
 
     def get_the_closest_block_to_timestamp(
-        self, chain: str = "ethereum", timestamp: int = 1648680149
-    ):
+        self, chain: str, timestamp: int
+    ) -> Dict[str, Any]:
+        """
+        Get the closest block to the given timestamp for a specific chain.
+
+        Args:
+            chain (str): Chain which you want to get the block from
+            timestamp (int): UNIX timestamp of the block you are searching for
+
+        Raises:
+            ValueError: If the chain is not valid.
+
+        Returns:
+            The closest block to the given timestamp for the specified chain.
+        """
+        if chain.lower() not in self.chains:
+            raise ValueError(f"Invalid chain: {chain}. Available chains: {self.chains}")
+        
         return self._get(ApiSectionsEnum.COINS, "block", chain, timestamp)

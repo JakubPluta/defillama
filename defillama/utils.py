@@ -154,3 +154,15 @@ def prepare_coins_for_request(coins: Union[str, Coin, Dict[str, str], List[Coin]
     raise ValueError(f"Unsupported type: {type(coins)}")
 
 
+
+def get_previous_timestamp(delta_days: int = 90) -> int:
+    """
+    Generate a timestamp representing a specified number of days before the current time.
+
+    Args:
+        delta_days (int): The number of days to go back in time. Defaults to 90.
+
+    Returns:
+        int: The timestamp representing the specified number of days before the current time.
+    """
+    return int(datetime.datetime.now().timestamp() - datetime.timedelta(days=delta_days).total_seconds())
