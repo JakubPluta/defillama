@@ -1,13 +1,15 @@
 import datetime
 import enum
 from functools import cached_property, lru_cache
+from dtypes import Coin, Chain, Address
 import json
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Optional, Union
 import uuid
 import requests
 import pprint
+
 from exc import InvalidResponseDataException, InvalidResponseStatusCodeException
-from utils import get_retry_session
+from utils import get_retry_session, timestamp_converter, get_coingecko_coin_ids, read_coingecko_ids_from_file, prepare_coins_for_request
 from log import get_logger
 from slugify import slugify
 
@@ -156,19 +158,19 @@ class DefiLlamaClient:
         Returns:
             List[str]: The list of chains slugs.
         """
-        return list({x['name'] for x in self._get(ApiSectionsEnum.TVL, "v2", "chains")})
-    
+        return list({x["name"] for x in self._get(ApiSectionsEnum.TVL, "v2", "chains")})
+
     @cached_property
     def protocols(self) -> List[str]:
-        """Retrieves a list of protocols slugs. 
+        """Retrieves a list of protocols slugs.
 
 
         Returns:
             A list of strings representing the slugs of the protocols.
 
         """
-        return list({x['slug'] for x in self._get(ApiSectionsEnum.TVL, "protocols")})
-    
+        return list({x["slug"] for x in self._get(ApiSectionsEnum.TVL, "protocols")})
+
     @cached_property
     def bridges(self) -> Dict[str, str]:
         """
@@ -177,28 +179,40 @@ class DefiLlamaClient:
         Returns:
             List[str]: A list of bridge slugs.
         """
-        return {int(x['id']) : x['name'] for x in self._get(ApiSectionsEnum.BRIDGES, "bridges")['bridges']}
-    
+        return {
+            int(x["id"]): x["name"]
+            for x in self._get(ApiSectionsEnum.BRIDGES, "bridges")["bridges"]
+        }
+
     @cached_property
     def stablecoins(self) -> Dict[Any, Any]:
         """
         Returns a list of dictionaries representing stablecoins.
 
         Returns:
-            Dict[Any, Any]: A list of dictionaries representing the 
+            Dict[Any, Any]: A list of dictionaries representing the
             stablecoins. Each dictionary contains the 'id' and 'symbol' of a stablecoin.
         """
-        return {int(x['id']) : x['symbol'] for x in self._get(ApiSectionsEnum.STABLECOINS, "stablecoins")['peggedAssets']}
+        return {
+            int(x["id"]): x["symbol"]
+            for x in self._get(ApiSectionsEnum.STABLECOINS, "stablecoins")[
+                "peggedAssets"
+            ]
+        }
+
     @cached_property
     def pools(self) -> Dict[Any, Any]:
         """
         Returns a dictionary of pools where the keys are the pool IDs and the values are the corresponding symbols.
-        
+
         Returns:
             Dict[Any, Any]: A dictionary of pools where the keys are the pool IDs and the values are the corresponding symbols.
         """
-        return {x['pool']: x['symbol'] for x in self._get(ApiSectionsEnum.YIELDS, "pools")['data']}
-    
+        return {
+            x["pool"]: x["symbol"]
+            for x in self._get(ApiSectionsEnum.YIELDS, "pools")["data"]
+        }
+
     @cached_property
     def dex_protocols(self) -> List[str]:
         """A cached property that returns a list of slugified dex protocol names.
@@ -206,8 +220,10 @@ class DefiLlamaClient:
         Returns:
             list: A list of slugified dex protocol names.
         """
-        return [slugify(x['name']) for x in self.get_dexes_volume_overview()['protocols']]
-    
+        return [
+            slugify(x["name"]) for x in self.get_dexes_volume_overview()["protocols"]
+        ]
+
     @cached_property
     def dex_chains(self) -> List[str]:
         """Retrieves the 'allChains' property from the result of the `get_dexes_volume_overview` method.
@@ -215,8 +231,8 @@ class DefiLlamaClient:
         Returns:
             The 'allChains' property from the result of the `get_dexes_volume_overview` method.
         """
-        return [x.lower() for x in self.get_dexes_volume_overview()['allChains']]
-    
+        return [x.lower() for x in self.get_dexes_volume_overview()["allChains"]]
+
     @cached_property
     def dex_options_protocols(self) -> List[str]:
         """Retrieves the 'options' property from the result of the `get_dexes_volume_overview` method.
@@ -224,8 +240,10 @@ class DefiLlamaClient:
         Returns:
             The 'options' property from the result of the `get_dexes_volume_overview` method.
         """
-        return [slugify(x['name']) for x in self.get_overview_dexes_options()['protocols']]
-    
+        return [
+            slugify(x["name"]) for x in self.get_overview_dexes_options()["protocols"]
+        ]
+
     @cached_property
     def fees_protocols(self) -> List[str]:
         """Retrieves the 'fees' property from the result of the `get_dexes_volume_overview` method.
@@ -233,8 +251,11 @@ class DefiLlamaClient:
         Returns:
             The 'fees' property from the result of the `get_dexes_volume_overview` method.
         """
-        return [slugify(x['name']) for x in self.get_fees_and_revenues_for_all_protocols()['protocols']]
-    
+        return [
+            slugify(x["name"])
+            for x in self.get_fees_and_revenues_for_all_protocols()["protocols"]
+        ]
+
     @cached_property
     def fees_chains(self) -> List[str]:
         """Retrieves the 'allChains' property from the result of the `get_fees_and_revenues_for_all_protocols` method.
@@ -242,14 +263,35 @@ class DefiLlamaClient:
         Returns:
             The 'allChains' property from the result of the `get_fees_and_revenues_for_all_protocols` method.
         """
-        return [x.lower() for x in self.get_fees_and_revenues_for_all_protocols()['allChains']]
-    
-    
+        return [
+            x.lower()
+            for x in self.get_fees_and_revenues_for_all_protocols()["allChains"]
+        ]
+
+    def get_coingecko_coin_ids(self, skip: int = 0, limit: int = None, from_gecko_api: bool = False) -> List[str]:
+        """Retrieves a list of CoinGecko coin IDs.
+
+        Parameters:
+            skip (int, optional): The number of CoinGecko coin IDs to skip. Defaults to 0.
+            limit (int, optional): The maximum number of CoinGecko coin IDs to retrieve. Defaults to None. If None, retrieves all CoinGecko coin IDs.
+            from_gecko_api (bool, optional): Whether to retrieve CoinGecko coin IDs from CoinGecko API or from local file. Defaults to False.
+            
+        Returns:
+            A list of CoinGecko coin IDs.
+        """
+        if from_gecko_api:
+            log.info("Retrieving CoinGecko coin IDs from CoinGecko API")
+            coingecko_ids: List[str] = get_coingecko_coin_ids()
+        else:
+            log.info("Retrieving CoinGecko coin IDs from file. If you want to retrieve CoinGecko IDs from CoinGecko API, set `from_gecko_api=True`")
+            coingecko_ids: List[str] = read_coingecko_ids_from_file()
+        return coingecko_ids[skip : skip + limit] if limit else coingecko_ids[skip:]
+
     def get_protocols(self) -> List[Dict[Any, Any]]:
         """Retrieves all protocols on Defi Llama along with their TVL.
 
         Returns:
-            A list of dictionaries representing the protocols. 
+            A list of dictionaries representing the protocols.
             Each dictionary contains key-value pairs representing the protocol information.
         """
 
@@ -265,9 +307,10 @@ class DefiLlamaClient:
             The historical TVL of the protocol and breakdowns by token and chain.
         """
         if protocol not in self.protocols:
-            raise ValueError(f"Invalid protocol: {protocol}. Available protocols: {self.protocols}")
+            raise ValueError(
+                f"Invalid protocol: {protocol}. Available protocols: {self.protocols}"
+            )
         return self._get(ApiSectionsEnum.TVL, "protocol", protocol)
-
 
     def get_historical_tvl_of_defi_on_all_chains(self) -> List[Dict[Any, Any]]:
         """Retrieves the historical total value locked (TVL) of decentralized finance (DeFi) on all chains.
@@ -276,7 +319,7 @@ class DefiLlamaClient:
         Returns:
             A list of dictionaries representing the historical TVL data for each chain. Each dictionary contains
             the date and the corresponding TVL value.
-            
+
         Response:
             [{'date': 1530230400, 'tvl': 20541.94079040033}, {'date': 1530316800, 'tvl': 20614.458266145004}]
         """
@@ -291,7 +334,7 @@ class DefiLlamaClient:
         Returns:
             The historical TVL for the specified chain. The returned data is a list of dictionaries, where each
             dictionary contains the date and the corresponding TVL value.
-            
+
         Response:
             [{'date': 1626220800, 'tvl': 68353955.52897093}, {'date': 1626307200, 'tvl': 62829548.17372862}]
         """
@@ -311,7 +354,9 @@ class DefiLlamaClient:
             int: The current TVL for the specified protocol.
         """
         if protocol not in self.protocols:
-            raise ValueError(f"Invalid protocol: {protocol}. Available protocols: {self.protocols}")
+            raise ValueError(
+                f"Invalid protocol: {protocol}. Available protocols: {self.protocols}"
+            )
         return self._get(ApiSectionsEnum.TVL, "tvl", protocol)
 
     def get_current_tvl_of_all_chains(self) -> List[Dict[Any, Any]]:
@@ -336,25 +381,29 @@ class DefiLlamaClient:
         """
         return self._get(
             ApiSectionsEnum.STABLECOINS, "stablecoins", includePrices=include_prices
-        )['peggedAssets']
+        )["peggedAssets"]
 
     def get_current_stablecoins_market_cap(
         self,
     ) -> List[Dict[Any, Any]]:
         """
         Retrieves the current market capitalization of stablecoins on each chain.
-        
+
         Returns:
             The current market capitalization of stablecoins on each chain.
-            
+
         """
         return self._get(ApiSectionsEnum.STABLECOINS, "stablecoinchains")
-    
+
     def _get_stablecoin_id(self, stablecoin: Union[str, int]) -> int:
         if isinstance(stablecoin, str) and not stablecoin.isnumeric():
-            stablecoin_id = next((k for k, v in self.stablecoins.items() if v == stablecoin), None)
+            stablecoin_id = next(
+                (k for k, v in self.stablecoins.items() if v == stablecoin), None
+            )
             if stablecoin_id is None:
-                raise ValueError(f"Invalid stablecoin: {stablecoin}. Available stablecoins: {self.stablecoins}")
+                raise ValueError(
+                    f"Invalid stablecoin: {stablecoin}. Available stablecoins: {self.stablecoins}"
+                )
         elif isinstance(stablecoin, int):
             stablecoin_id = stablecoin
         elif isinstance(stablecoin, str):
@@ -363,23 +412,31 @@ class DefiLlamaClient:
             raise ValueError("Invalid stablecoin")
 
         if stablecoin_id not in self.stablecoins:
-            raise ValueError(f"Invalid stablecoin: {stablecoin}. Available stablecoins: {self.stablecoins}")
-        
+            raise ValueError(
+                f"Invalid stablecoin: {stablecoin}. Available stablecoins: {self.stablecoins}"
+            )
+
         return stablecoin_id
 
     def _get_bridge_id(self, bridge: Union[str, int]) -> int:
         if isinstance(bridge, str) and not bridge.isnumeric():
             bridge_id = next((k for k, v in self.bridges.items() if v == bridge), None)
             if bridge_id is None:
-                raise ValueError(f"Invalid bridge: {bridge}. Available bridges: {self.bridges}")
+                raise ValueError(
+                    f"Invalid bridge: {bridge}. Available bridges: {self.bridges}"
+                )
         else:
             bridge_id = int(bridge)
-        
+
         if bridge_id not in self.bridges:
-            raise ValueError(f"Invalid bridge: {bridge}. Available bridges: {self.bridges}")
+            raise ValueError(
+                f"Invalid bridge: {bridge}. Available bridges: {self.bridges}"
+            )
         return bridge_id
 
-    def get_stablecoins_historical_market_cap(self, stablecoin: Union[str, int]) -> List[Dict[Any, Any]]:
+    def get_stablecoins_historical_market_cap(
+        self, stablecoin: Union[str, int]
+    ) -> List[Dict[Any, Any]]:
         """
         Retrieves the historical market capitalization data for a specific stablecoin.
 
@@ -389,7 +446,7 @@ class DefiLlamaClient:
         Returns:
             The historical market capitalization data for the specified stablecoin.
         """
-        
+
         return self._get(
             ApiSectionsEnum.STABLECOINS,
             "stablecoincharts",
@@ -398,7 +455,9 @@ class DefiLlamaClient:
         )
 
     def get_stablecoins_historical_martket_cap_in_chain(
-        self, chain: str, stablecoin: Union[str, int],
+        self,
+        chain: str,
+        stablecoin: Union[str, int],
     ) -> List[Dict[Any, Any]]:
         """
         Get the historical market cap and distribution of stablecoins in the specified blockchain.
@@ -416,9 +475,9 @@ class DefiLlamaClient:
 
         if chain not in self.chains:
             raise ValueError(f"Invalid chain: {chain}. Available chains: {self.chains}")
-        
+
         stablecoin_id = self._get_stablecoin_id(stablecoin)
-        
+
         return self._get(
             ApiSectionsEnum.STABLECOINS,
             "stablecoincharts",
@@ -452,13 +511,13 @@ class DefiLlamaClient:
 
     def get_pools(self) -> List[Dict[Any, Any]]:
         """
-        Retrieves the latest data for all pools, including enriched information 
+        Retrieves the latest data for all pools, including enriched information
         such as predictions
 
         Returns:
             A list of dictionaries representing the pools.
         """
-        return self._get(ApiSectionsEnum.YIELDS, "pools")['data']
+        return self._get(ApiSectionsEnum.YIELDS, "pools")["data"]
 
     def get_pool_historical_apy_and_tvl(self, pool: str) -> List[Dict[Any, Any]]:
         """
@@ -479,10 +538,12 @@ class DefiLlamaClient:
             log.debug(f"Invalid pool id: {pool}")
             pool_id = next((k for k, v in self.pools.items() if v == pool), None)
             if pool_id is None:
-                raise ValueError(f"Invalid pool: {pool}. To see available pools, use DefiLlamaClient().pools")
+                raise ValueError(
+                    f"Invalid pool: {pool}. To see available pools, use DefiLlamaClient().pools"
+                )
         else:
             pool_id = pool
-            
+
         return self._get(ApiSectionsEnum.YIELDS, "chart", pool_id)
 
     def get_bridges(self, include_chains: bool = True) -> List[Dict[Any, Any]]:
@@ -491,33 +552,33 @@ class DefiLlamaClient:
 
         Params:
             include_chains (bool, optional): Whether to include current previous day volume breakdown by chain. Defaults to True.
-            
+
 
         Returns:
             List[Dict[Any, Any]]: A list of dictionaries representing the bridges.
         """
         return self._get(
             ApiSectionsEnum.BRIDGES, "bridges", includeChains=include_chains
-        )['bridges']
-        
+        )["bridges"]
 
     def get_bridge(self, bridge: Union[str, int]) -> Dict[Any, Any]:
         """
         Get the summary od bridge volume and volume breakdown by chain.
-        
+
         Parameters:
             bridge (Union[str, int]): The ID or name of the bridge.
-        
+
         Returns:
             The summary od bridge volume and volume breakdown by chain.
-        
+
         Raises:
             ValueError: If the provided bridge is invalid or not found in the available bridges.
         """
         return self._get(ApiSectionsEnum.BRIDGES, "bridge", self._get_bridge_id(bridge))
-    
 
-    def get_bridge_volume(self, chain: str, bridge: Union[str, int] = None) -> List[Dict[Any, Any]]:
+    def get_bridge_volume(
+        self, chain: str, bridge: Union[str, int] = None
+    ) -> List[Dict[Any, Any]]:
         """
         Retrieves the volume of a bridge in a specific chain.
 
@@ -533,7 +594,7 @@ class DefiLlamaClient:
         """
         if chain not in self.chains:
             raise ValueError(f"Invalid chain: {chain}. Available chains: {self.chains}")
-        
+
         if bridge is not None:
             try:
                 bridge_id = self._get_bridge_id(bridge)
@@ -542,7 +603,9 @@ class DefiLlamaClient:
                 bridge_id = None
         return self._get(ApiSectionsEnum.BRIDGES, "bridgevolume", chain, id=bridge_id)
 
-    def get_bridge_day_stats(self, timestamp: int, chain: str, bridge: Union[str, int] = None) -> List[Dict[Any, Any]]:
+    def get_bridge_day_stats(
+        self, timestamp: int, chain: str, bridge: Union[str, int] = None
+    ) -> List[Dict[Any, Any]]:
         """
         Get the bridge day statistics for a specific timestamp, chain, and bridge.
 
@@ -557,10 +620,10 @@ class DefiLlamaClient:
         Raises:
             ValueError: If an invalid chain is provided or the bridge is not found.
         """
-        
+
         if chain not in self.chains:
             raise ValueError(f"Invalid chain: {chain}. Available chains: {self.chains}")
-        
+
         if bridge is not None:
             try:
                 bridge_id = self._get_bridge_id(bridge)
@@ -588,7 +651,7 @@ class DefiLlamaClient:
             start_timestamp (int, optional): The start timestamp for filtering transactions. Defaults to None.
             end_timestamp (int, optional): The end timestamp for filtering transactions. Defaults to None.
             source_chain (str, optional): The source chain for filtering transactions. Defaults to None.
-            address (str, optional): Returns only transactions with specified address as "from" or "to". 
+            address (str, optional): Returns only transactions with specified address as "from" or "to".
                 Addresses are quried in the form {chain}:{address}, where chain is an identifier such as ethereum, bsc,
                 polygon, avax... .
             limit (int, optional): The maximum number of transactions to retrieve. Defaults to 200.
@@ -596,13 +659,13 @@ class DefiLlamaClient:
         Returns:
             List[Dict[Any, Any]]: A list of bridge transactions matching the specified criteria.
         """
-        
+
         bridge_id = self._get_bridge_id(bridge)
-        
+
         if source_chain and source_chain not in self.chains:
-            source_chain = None 
-            log.warning("Source chain not found. Setting source chain to None.")      
-        
+            source_chain = None
+            log.warning("Source chain not found. Setting source chain to None.")
+
         return self._get(
             ApiSectionsEnum.BRIDGES,
             "transactions",
@@ -663,7 +726,9 @@ class DefiLlamaClient:
             The volume overview for the specified chain from the DEXes API.
         """
         if chain.lower() not in self.dex_chains:
-            raise ValueError(f"Invalid chain: {chain}. Available chains: {self.dex_chains}")
+            raise ValueError(
+                f"Invalid chain: {chain}. Available chains: {self.dex_chains}"
+            )
         return self._get(
             ApiSectionsEnum.VOLUMES,
             "overview",
@@ -673,8 +738,6 @@ class DefiLlamaClient:
             excludeTotalDataChartBreakdown=exclude_total_data_chart_breakdown,
             dataType=dataType,
         )
-        
-
 
     def get_summary_of_dex_volume_with_historical_data(
         self,
@@ -700,8 +763,10 @@ class DefiLlamaClient:
             ValueError: If the protocol is invalid.
         """
         if protocol.lower() not in self.dex_protocols:
-            raise ValueError(f"Invalid protocol: {protocol}. Available protocols: {self.dex_protocols}")
-        
+            raise ValueError(
+                f"Invalid protocol: {protocol}. Available protocols: {self.dex_protocols}"
+            )
+
         return self._get(
             ApiSectionsEnum.VOLUMES,
             "summary",
@@ -724,7 +789,7 @@ class DefiLlamaClient:
         Parameters:
             exclude_total_data_chart (bool, optional): Whether to exclude aggregated chart from response. Defaults to True.
             exclude_total_data_chart_breakdown (bool, optional): Whether to exclude broken down chart from response. Defaults to True.
-            dataType (OptionsDataTypeEnum, optional): The type of data to retrieve. One of these: 
+            dataType (OptionsDataTypeEnum, optional): The type of data to retrieve. One of these:
             dailyPremiumVolume, dailyNotionalVolume, totalPremiumVolume, totalNotionalVolume. Defaults to OptionsDataTypeEnum.dailyPremiumVolume.
 
         Returns:
@@ -753,16 +818,17 @@ class DefiLlamaClient:
             chain (str, optional): The chain for which to retrieve the volume overview.
             exclude_total_data_chart (bool, optional): Whether to exclude aggregated chart from response. Defaults to True.
             exclude_total_data_chart_breakdown (bool, optional): Whether to exclude broken down chart from response. Defaults to True.
-            dataType (OptionsDataTypeEnum, optional): The type of data to retrieve. One of these: 
+            dataType (OptionsDataTypeEnum, optional): The type of data to retrieve. One of these:
             dailyPremiumVolume, dailyNotionalVolume, totalPremiumVolume, totalNotionalVolume. Defaults to OptionsDataTypeEnum.dailyPremiumVolume.
 
         Returns:
             Dict[Any, Any]: The options for the overview dexes.
         """
         if chain.lower() not in self.dex_chains:
-            raise ValueError(f"Invalid chain: {chain}. Available chains: {self.dex_chains}")
-        
-        
+            raise ValueError(
+                f"Invalid chain: {chain}. Available chains: {self.dex_chains}"
+            )
+
         return self._get(
             ApiSectionsEnum.VOLUMES,
             "overview",
@@ -777,7 +843,6 @@ class DefiLlamaClient:
         self,
         protocol: str,
         dataType: OptionsDataTypeEnum = OptionsDataTypeEnum.dailyPremiumVolume,
-        
     ):
         """
         Retrieves the summary of options volume with historical data for a given protocol.
@@ -790,8 +855,10 @@ class DefiLlamaClient:
             The summary of options volume data for the specified protocol and data type.
         """
         if protocol.lower() not in self.dex_options_protocols:
-            raise ValueError(f"Invalid protocol: {protocol}. Available protocols: {self.dex_options_protocols}")
-        
+            raise ValueError(
+                f"Invalid protocol: {protocol}. Available protocols: {self.dex_options_protocols}"
+            )
+
         return self._get(
             ApiSectionsEnum.VOLUMES, "summary", "options", protocol, dataType=dataType
         )
@@ -831,22 +898,24 @@ class DefiLlamaClient:
     ) -> Dict[Any, Any]:
         """
         Retrieves fees and revenues for all protocols for a given chain.
-        
+
         Parameters:
             chain (str): The chain for which to retrieve the fees and revenues.
             exclude_total_data_chart (bool, optional): Whether to exclude the total data chart. Defaults to True.
             exclude_total_data_chart_breakdown (bool, optional): Whether to exclude the breakdown of the total data chart. Defaults to True.
             dataType (FeesDataTypeEnum, optional): The type of fees data to retrieve. Defaults to FeesDataTypeEnum.dailyFees.
-        
+
         Raises:
             ValueError: If an invalid chain is provided.
-        
+
         Returns:
             The fees and revenues data for all protocols on the given chain.
         """
         if chain.lower() not in self.fees_chains:
-            raise ValueError(f"Invalid chain: {chain}. Available chains: {self.fees_chains}")
-        
+            raise ValueError(
+                f"Invalid chain: {chain}. Available chains: {self.fees_chains}"
+            )
+
         return self._get(
             ApiSectionsEnum.FEES,
             "overview",
@@ -867,7 +936,7 @@ class DefiLlamaClient:
 
         Args:
             protocol (str): The name of the protocol.
-            dataType (FeesDataTypeEnum, optional): The type of fees data to retrieve. 
+            dataType (FeesDataTypeEnum, optional): The type of fees data to retrieve.
             Defaults to FeesDataTypeEnum.dailyFees.
 
         Raises:
@@ -877,80 +946,126 @@ class DefiLlamaClient:
             dict: The summary of fees and revenue for the specified protocol.
         """
         if protocol.lower() not in self.fees_protocols:
-            raise ValueError(f"Invalid protocol: {protocol}. Available protocols: {self.fees_protocols}")
+            raise ValueError(
+                f"Invalid protocol: {protocol}. Available protocols: {self.fees_protocols}"
+            )
         return self._get(
             ApiSectionsEnum.FEES, "summary", "fees", protocol, dataType=dataType
         )
 
     def get_current_prices_of_tokens_by_contract_address(
         self,
-        coins: str = "ethereum:0xdF574c24545E5FfEcb9a659c229253D4111d87e1,coingecko:ethereum,bsc:0x762539b45a1dcce3d36d080f74d1aed37844b878,ethereum:0xdB25f211AB05b1c97D595516F45794528a807ad8",
-        search_width: str = "6h",
+        coins: Union[str, Coin, Dict[str, str], List[Coin], List[Dict[str, str]]],
+        search_width: Optional[str] = None,
     ):
         """
-        The goal of this API is to price as many tokens as possible, including exotic ones that never get traded, which makes them impossible to price by looking at markets.
+        Retrieves the current prices of tokens by contract address.
+        
+        To see all available chains use client.chains
+        To see all available coingecko ids use client.get_coingecko_coin_ids()
+        You can use coingecko as a chain, and then use coin gecko ids instead of contract addresses to find a token.
+        Like: coins = "coingecko:uniswap,coingecko:ethereum" or Coin("coingecko:uniswap") or {"chain": "coingecko", "address": "uniswap"}
 
-        The base of our data are prices pulled from coingecko, which is then extended through multiple means:
-
-        We price all bridged tokens by using the price of the token in it's original chain, so we fetch all bridged versions of USDC on arbitrum, fantom, avax... and price all them using the price for the token on Ethereum, which we know. Right now we support 10 different bridging protocols.
-
-        We have multiple adapters to price specialized sets of tokens by running custom code:
-
-        We price yearn's yToken LPs by checking how much underlying token can be withdrawn for each LP
-
-        Aave, compound and euler LP tokens are also priced based on their relationship against underlying tokens
-
-        Uniswap, curve, balancer and stargate LPs are priced using the underlying tokens in each pair
-
-        GMX's GLP token is priced based on the value of tokens given on withdrawal (which includes calculations based on trader's PnL)
-
-        Synthetix tokens are priced using forex prices of the coin they are pegged to
-
-        For tokens that we haven't been able to price in any other way, we find the pool with most liquidity for each on uniswap, curve and serum and then use the prices provided on those exchanges.
-
-        Unlike all the other tokens, we can't confirm that these prices are correct, so we only ingest the ones that have sufficient liquidity and, even in that case, we attach a confidence value to them that is related to the depth of liquidity and which represents our confidence in the quality of each price. API consumers can choose to filter out prices with low confidence values.
-
-        Our API server is fully open source and we are constantly adding more pricing adapters, extending the amount of tokens we support.
-
-        Tokens are queried using {chain}:{address}, where chain is an identifier such as ethereum, bsc, polygon, avax... You can also get tokens by coingecko id by setting coingecko as the chain, eg: coingecko:ethereum, coingecko:bitcoin. Examples:
-
-        ethereum:0xdF574c24545E5FfEcb9a659c229253D4111d87e1
-        bsc:0x762539b45a1dcce3d36d080f74d1aed37844b878
-        coingecko:ethereum
-        arbitrum:0x4277f8f2c384827b5273592ff7cebd9f2c1ac258
+        Args:
+            coins (Union[str, Coin, Dict[str, str], List[Coin], List[Dict[str, str]]]): The tokens to retrieve prices for. 
+                Can be a Coin, a Dict, a list of Coin objects or dictionaries containing token details, or a string with coma separated tokens in format chain:address
+            search_width (str, optional): Time range on either side to find price data, defaults to 6 hours. Defaults to "6h".
+        Returns:
+            The current prices of the tokens specified.
+            
+        Examples:
+        
+            # Retrieve the current prices of tokens by contract address
+            >>> client.get_current_prices_of_tokens_by_contract_address("ethereum:0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984,coingecko:ethereum")
+            
+            # Retrieve the current prices of tokens by contract address by providing a list of dictionaries
+            >>> client.get_current_prices_of_tokens_by_contract_address([
+                    {
+                        "chain": "ethereum",
+                        "address": "0xdF574c24545E5FfEcb9a659c229253D4111d87e1",
+                    },
+                    {
+                        "chain": "ethereum",
+                        "address": "0xdB25f211AB05b1c97D595516F45794528a807ad8",
+                    },
+                    {
+                        "chain": "coingecko",
+                        "address": "uniswap",
+                    },
+                    {
+                        "chain": "bsc",
+                        "address": "0x762539b45a1dcce3d36d080f74d1aed37844b878",   
+                    }    
+                ])
+            
+            # Retrieve the current prices of tokens by contract address by providing a list of Coin objects
+            >>> client.get_current_prices_of_tokens_by_contract_address([Coin("ethereum", "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984"), Coin("bsc", "0x762539b45a1dcce3d36d080f74d1aed37844b878")])
         """
-
+        
+        coins_to_search = prepare_coins_for_request(coins)
         return self._get(
-            ApiSectionsEnum.COINS, "prices", "current", coins, searchWidth=search_width
+            ApiSectionsEnum.COINS, "prices", "current", coins_to_search, searchWidth=search_width
         )
-
+        
+        
     def get_historical_prices_of_tokens_by_contract_address(
         self,
-        coins: str = "ethereum:0xdF574c24545E5FfEcb9a659c229253D4111d87e1,coingecko:ethereum,bsc:0x762539b45a1dcce3d36d080f74d1aed37844b878,ethereum:0xdB25f211AB05b1c97D595516F45794528a807ad8",
-        timestamp: int = 1648680149,
-        search_width: str = "6h",
+        coins: Union[str, Coin, Dict[str, str], List[Coin], List[Dict[str, str]]],
+        timestamp: int,
+        search_width: str = None,
     ):
+        """
+        Retrieves the historical prices of tokens by contract address.
+        
+        To see all available chains use client.chains
+        To see all available coingecko ids use client.get_coingecko_coin_ids()
+        You can use coingecko as a chain, and then use coin gecko ids instead of contract addresses to find a token.
+        Like: coins = "coingecko:uniswap,coingecko:ethereum" or Coin("coingecko:uniswap") or {"chain": "coingecko", "address": "uniswap"}
+
+        Args:
+            coins (Union[str, Coin, Dict[str, str], List[Coin], List[Dict[str, str]]]): The tokens to retrieve prices for. 
+                Can be a Coin, a Dict, a list of Coin objects or dictionaries containing token details, or a string with coma separated tokens in format chain:address
+            timestamp (int, optional): The timestamp to retrieve prices for.
+            search_width (str, optional): Time range on either side to find price data, defaults to 6 hours. Defaults to "6h".
+        Returns:
+            The historical prices of the tokens specified.
+            
+        Examples:
+        
+            # Retrieve the current prices of tokens by contract address
+            >>> client.get_current_prices_of_tokens_by_contract_address("ethereum:0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984,coingecko:ethereum")
+            
+            # Retrieve the current prices of tokens by contract address by providing a list of dictionaries
+            >>> client.get_current_prices_of_tokens_by_contract_address([
+                    {
+                        "chain": "ethereum",
+                        "address": "0xdF574c24545E5FfEcb9a659c229253D4111d87e1",
+                    },
+                    {
+                        "chain": "ethereum",
+                        "address": "0xdB25f211AB05b1c97D595516F45794528a807ad8",
+                    },
+                    {
+                        "chain": "coingecko",
+                        "address": "uniswap",
+                    },
+                    {
+                        "chain": "bsc",
+                        "address": "0x762539b45a1dcce3d36d080f74d1aed37844b878",   
+                    }    
+                ])
+            
+            # Retrieve the current prices of tokens by contract address by providing a list of Coin objects
+            >>> client.get_current_prices_of_tokens_by_contract_address([Coin("ethereum", "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984"), Coin("bsc", "0x762539b45a1dcce3d36d080f74d1aed37844b878")])
+        """
+        
+        coins_to_search = prepare_coins_for_request(coins)
         return self._get(
             ApiSectionsEnum.COINS,
             "prices",
             "historical",
             timestamp,
-            coins,
-            searchWidth=search_width,
-        )
-
-    def get_batch_historical_prices(
-        self,
-        coins: dict = {
-            "avax:0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e": [1666876743, 1666862343],
-            "coingecko:ethereum": [1666869543, 1666862343],
-        },
-        search_width: str = "6h",
-    ):
-        return self._get(
-            ApiSectionsEnum.COINS,
-            "batchHistorical",
-            coins=json.dumps(coins),
+            coins_to_search,
             searchWidth=search_width,
         )
 
