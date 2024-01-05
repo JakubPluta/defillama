@@ -24,6 +24,8 @@ log = get_logger(__name__)
 
 
 class ApiSectionsEnum(str, enum.Enum):
+    """The available API sections."""
+
     TVL = "tvl"
     COINS = "coins"
     STABLECOINS = "stablecoins"
@@ -34,11 +36,15 @@ class ApiSectionsEnum(str, enum.Enum):
 
 
 class DataTypeEnum(str, enum.Enum):
+    """The available data types."""
+
     dailyVolume = "dailyVolume"
     totalVolume = "totalVolume"
 
 
 class OptionsDataTypeEnum(str, enum.Enum):
+    """The available options data types."""
+
     dailyPremiumVolume = "dailyPremiumVolume"
     totalPremiumVolume = "totalPremiumVolume"
     dailyNotionalVolume = "dailyNotionalVolume"
@@ -46,6 +52,8 @@ class OptionsDataTypeEnum(str, enum.Enum):
 
 
 class FeesDataTypeEnum(str, enum.Enum):
+    """The available fees data types."""
+
     dailyFees = "dailyFees"
     totalFees = "totalFees"
     dailyRevenue = "dailyRevenue"
@@ -53,7 +61,20 @@ class FeesDataTypeEnum(str, enum.Enum):
 
 
 class DefiLlamaClient:
+    """This class represents a client for interacting with the DeFi Llama API.
+
+    To use this class, simply create an instance of it and call its methods to interact with the API.
+    To see details on how to use the API, refer to the documentation at https://defillama.com/docs/api.
+
+    """
+
     def __init__(self, **kwargs) -> None:
+        """Initializes the Defi Llama Client object.
+
+        Parameters:
+            **kwargs (dict): Additional keyword arguments.
+        """
+
         self._urls = {
             ApiSectionsEnum.TVL: "https://api.llama.fi",
             ApiSectionsEnum.COINS: "https://coins.llama.fi",
@@ -287,36 +308,105 @@ class DefiLlamaClient:
         ]
 
     def list_protocols_slugs(self) -> List[str]:
+        """
+        Returns a list of protocol slugs.
+
+        Returns:
+            List[str] A list of protocol slugs.
+        """
         return self._protocols
 
     def list_chains(self) -> List[str]:
+        """
+        Returns a list of chains.
+
+        Returns:
+            List[str]: A list of chains.
+        """
         return self._chains
 
-    def list_bridges(self) -> Dict[str, str]:
+    def list_bridges(self) -> Dict[int, str]:
+        """
+        Return a dictionary of bridges.
+
+        Returns:
+            Dict[in, str]: A dictionary of bridges.
+        """
         return self._bridges
 
     def list_stablecoins(self) -> Dict[Any, Any]:
+        """
+        Return the dictionary of stablecoins.
+
+        Returns:
+            Dict[Any, Any]: The dictionary containing stablecoins.
+        """
         return self._stablecoins
 
-    def list_pools(self) -> Dict[Any, Any]:
+    def list_pools(self) -> Dict[UUIDstr, Any]:
+        """Retrieves a list of pools and their symbols.
+
+        Returns a dictionary of pools where the keys are the pool IDs and the values are the corresponding symbols.
+        E.g. {'8997587d-a4aa-4441-95ce-4884f7f3c946': 'MATIC-WETH', ...}
+
+        Returns:
+            Dict[UUIDstr, Any]: The dictionary containing pools and their symbols.
+        """
+
         return self._pools
 
     def list_dex_chains(self) -> List[str]:
+        """
+        Return the list of dex chains.
+
+        Returns:
+            List[str]: The list of dex chains.
+        """
         return self._dex_chains
 
     def list_dex_protocols(self) -> List[str]:
+        """
+        Return the list of dex protocols.
+
+        Returns:
+            List[str]: The list of dex protocols.
+        """
         return self._dex_protocols
 
     def list_options_protocols(self) -> List[str]:
+        """
+        Return the list of options protocols.
+
+        Returns:
+            List[str]: The list of options protocols.
+        """
         return self._dex_options_protocols
 
     def list_options_chains(self) -> List[str]:
+        """
+        Return the list of options chains.
+
+        Returns:
+            List[str]: The list of options chains.
+        """
         return self._dex_options_chains
 
     def list_fees_protocols(self) -> List[str]:
+        """
+        Return the list of fees protocols.
+
+        Returns:
+            List[str]: The list of fees protocols.
+        """
         return self._fees_protocols
 
     def list_fees_chains(self) -> List[str]:
+        """
+        Return the list of fees chains.
+
+        Returns:
+            List[str]: The list of fees chains.
+        """
         return self._fees_chains
 
     def get_coingecko_coin_ids(
@@ -903,7 +993,7 @@ class DefiLlamaClient:
         chain: str,
         exclude_total_data_chart: bool = True,
         exclude_total_data_chart_breakdown: bool = True,
-        dataType: FeesDataTypeEnum = FeesDataTypeEnum.dailyFees,
+        dataType: FeesDataTypeEnum = "dailyFees",
     ) -> Dict[Any, Any]:
         """
         Retrieves fees and revenues for all protocols for a given chain.
@@ -1260,7 +1350,5 @@ class DefiLlamaClient:
         Returns:
             The closest block to the given timestamp for the specified chain.
         """
-        if chain.lower() not in self.chains:
-            raise ValueError(f"Invalid chain: {chain}. Available chains: {self.chains}")
-
+        validate_searched_entity(chain, self._chains, "chain")
         return self._get(ApiSectionsEnum.COINS, "block", chain, timestamp)
