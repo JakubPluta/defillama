@@ -1,6 +1,9 @@
+"""Custom exceptions."""
+
+
 class InvalidResponseDataException(Exception):
-    pass
+    """Raised when the response data is invalid."""
 
 
 class InvalidResponseStatusCodeException(Exception):
-    pass
+    """Raised when the response status code is invalid."""

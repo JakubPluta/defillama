@@ -2,9 +2,20 @@
 name = "defillama"
 version = "0.1.0"
 description = "Python Api Wrapper for DefiLlama API"
-authors = ["jp <plutakuba@gmail.com>"]
+authors = ["Jakub Pluta <plutakuba@gmail.com>"]
 license = "MIT"
 readme = "README.md"
+homepage = "https://github.com/JakubPluta/defillama/"
+repository = "https://github.com/JakubPluta/defillama/"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+packages = [
+    { include = "resources" },
+    { include = "resources/coingecko_ids.json"}
+]
 
 [tool.poetry.dependencies]
 python = "^3.10"
@@ -16,7 +27,32 @@ black = "^23.12.1"
 isort = "^5.13.2"
 pylint = "^3.0.3"
 ruff = "^0.1.9"
+pytest = "^7.4.4"
+pre-commit = "^3.6.0"
+pytest-cov = "^4.1.0"
+bumpversion = "^0.6.0"
 
 [build-system]
-requires = ["poetry-core"]
+requires = ["setuptools<65.5.0", "poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.ruff]
+ignore = ["E501"]
+unfixable = ["B"]
+
+[tool.ruff.per-file-ignores]
+"__init__.py" = ["E402", "F401"]
+
+
+[tool.isort]
+profile = "black"
+line_length = 79
+skip_gitignore = true
+combine_as_imports = true
+
+[tool.coverage.run]
+omit = [
+    "defillama/exc.py",
+    "defillama/log.py",
+    "defillama/dtypes.py"
+]

@@ -1,11 +1,9 @@
+"""Custom logging functions."""
+
 import logging
 import sys
 from typing import Optional
 
-_LOGGING_FORMATTER = (
-    "[%(levelname)s] %(name)s %(processName)s:%(process)s %(threadName)s:%(thread)d"
-    " %(funcName)s:%(lineno)d - %(message)s"
-)
 
 LOGGING_FORMATTER = (
     "[%(levelname)s] %(name)s %(asctime)s %(funcName)s:%(lineno)d - %(message)s"
