@@ -13,7 +13,7 @@ from log import get_logger
 log = get_logger(__name__)
 
 PROJECT_ROOT = pathlib.Path(__file__).parent.parent
-DATA_DIR = PROJECT_ROOT / "data"
+RESOURCES_DIR = PROJECT_ROOT / "resources"
 
 
 def get_retry_session(retries=5, backoff_factor=0.1) -> requests.Session:
@@ -46,18 +46,19 @@ def get_retry_session(retries=5, backoff_factor=0.1) -> requests.Session:
     return session
 
 
-
-def timestamp_converter(timestamp: int, as_str = False, fmt: str = "%Y-%m-%d %H:%M:%S") -> Union[str, datetime.datetime]:
+def timestamp_converter(
+    timestamp: int, as_str=False, fmt: str = "%Y-%m-%d %H:%M:%S"
+) -> Union[str, datetime.datetime]:
     """
     Convert a Unix timestamp to a formatted string or a datetime object.
-    
+
     Args:
         timestamp (int): The Unix timestamp to convert.
-        as_str (bool, optional): If True, return the formatted timestamp as a string. 
+        as_str (bool, optional): If True, return the formatted timestamp as a string.
             If False, return the datetime object. Defaults to False.
-        fmt (str, optional): The format string to use when returning the formatted timestamp. 
+        fmt (str, optional): The format string to use when returning the formatted timestamp.
             Defaults to "%Y-%m-%d %H:%M:%S".
-    
+
     Returns:
         Union[str, datetime.datetime]: If `as_str` is True, returns the formatted timestamp as a string.
             If `as_str` is False, returns the datetime object.
@@ -82,18 +83,16 @@ def get_coingecko_coin_ids() -> List[str]:
     return [coin["id"] for coin in response.json()]
 
 
-
 def read_coingecko_ids_from_file() -> List[str]:
     """Retrieves a list of CoinGecko coin IDs from a file.
 
     Returns:
         list[str]: A list of CoinGecko coin IDs.
     """
-    coins_path = DATA_DIR / "coingecko_ids.json"
+    coins_path = RESOURCES_DIR / "coingecko_ids.json"
     with open(coins_path, "r") as f:
-        coingecko_ids = json.load(f)['coins']
+        coingecko_ids = json.load(f)["coins"]
     return coingecko_ids
-
 
 
 def _prepare_token(token: Union[Coin, str, Dict[str, str]]) -> str:
@@ -113,7 +112,9 @@ def _prepare_token(token: Union[Coin, str, Dict[str, str]]) -> str:
     return token
 
 
-def prepare_coins_for_request(coins: Union[str, Coin, Dict[str, str], List[Coin], List[Dict[str, str]]]) -> str:
+def prepare_coins_for_request(
+    coins: Union[str, Coin, Dict[str, str], List[Coin], List[Dict[str, str]]]
+) -> str:
     """
     Prepare tokens for a request.
 
@@ -122,28 +123,28 @@ def prepare_coins_for_request(coins: Union[str, Coin, Dict[str, str], List[Coin]
 
     Returns:
         str: The prepared tokens as a comma-separated string.
-        
+
     Example:
         >>> coins = "ethereum:0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984","ethereum:0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984"
         >>> prepare_tokens_for_request(coins)
         >>> ethereum:0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984,ethereum:0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984
-            
+
         >>> coins = [{"chain":"ethereum","address":"0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984"},{"chain":"ethereum","address":"0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984"}]
         >>> prepare_tokens_for_request(coins)
         >>> ethereum:0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984,ethereum:0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984
-        
+
         >>> coins = [Coin("ethereum","0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984"),Coin("ethereum","0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984")]
         >>> prepare_tokens_for_request(coins)
         >>> ethereum:0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984,ethereum:0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984
-        
+
         >>> coins = Coin("ethereum","0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984")
         >>> prepare_tokens_for_request(coins)
         >>> ethereum:0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984
-        
+
         >>> coins = {"chain":"ethereum","address":"0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984"}
         >>> prepare_tokens_for_request(coins)
         >>> ethereum:0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984
-        
+
     """
     if isinstance(coins, str):
         return coins
@@ -152,7 +153,6 @@ def prepare_coins_for_request(coins: Union[str, Coin, Dict[str, str], List[Coin]
     if isinstance(coins, (Coin, dict)):
         return _prepare_token(coins)
     raise ValueError(f"Unsupported type: {type(coins)}")
-
 
 
 def get_previous_timestamp(delta_days: int = 90) -> int:
@@ -165,4 +165,105 @@ def get_previous_timestamp(delta_days: int = 90) -> int:
     Returns:
         int: The timestamp representing the specified number of days before the current time.
     """
-    return int(datetime.datetime.now().timestamp() - datetime.timedelta(days=delta_days).total_seconds())
+    return int(
+        datetime.datetime.now().timestamp()
+        - datetime.timedelta(days=delta_days).total_seconds()
+    )
+
+
+def get_stablecoin_id(stablecoin: Union[str, int], stablecoins: Dict[str, str]) -> int:
+    """
+    Returns the ID of a stablecoin based on its name or ID.
+
+    Parameters:
+        stablecoin (Union[str, int]): The name or ID of the stablecoin.
+        stablecoins (Dict[str, str]): A dictionary mapping stablecoin IDs to their names.
+
+    Returns:
+        int: The ID of the stablecoin.
+
+    Raises:
+        ValueError: If the stablecoin is invalid or not found in the stablecoins dictionary.
+    """
+    if isinstance(stablecoin, str) and not stablecoin.isnumeric():
+        stablecoin_id = next(
+            (
+                k
+                for k, v in stablecoins.items()
+                if v == stablecoin or v.lower() == stablecoin.lower()
+            ),
+            None,
+        )
+        if stablecoin_id is None:
+            raise ValueError(
+                f"Invalid stablecoin: {stablecoin}. Available stablecoins: {stablecoins}"
+            )
+    elif isinstance(stablecoin, (int, str)):
+        stablecoin_id = int(stablecoin)
+    else:
+        raise ValueError("Invalid stablecoin")
+
+    validate_searched_entity(stablecoin_id, stablecoins, "stablecoin")
+    return stablecoin_id
+
+
+def get_bridge_id(bridge: Union[str, int], bridges: Dict[str, str]) -> int:
+    """
+    Get the bridge ID based on the provided bridge name or ID.
+
+    Args:
+        bridge (Union[str, int]): The name or ID of the bridge.
+        bridges (Dict[str, str]): A dictionary mapping bridge IDs to bridge names.
+
+    Returns:
+        int: The ID of the bridge.
+
+    Raises:
+        ValueError: If the provided bridge is invalid and not found in the available bridges.
+
+    Examples:
+        >>> bridges = {'1': 'Bridge 1', '2': 'Bridge 2'}
+        >>> get_bridge_id('Bridge 1', bridges)
+        1
+        >>> get_bridge_id(2, bridges)
+        2
+        >>> get_bridge_id('Invalid Bridge', bridges)
+        ValueError: Invalid bridge: Invalid Bridge. Available bridges: {'1': 'Bridge 1', '2': 'Bridge 2'}
+    """
+    if isinstance(bridge, str) and not bridge.isnumeric():
+        bridge_id = next(
+            (
+                k
+                for k, v in bridges.items()
+                if v == bridge or v.lower() == bridge.lower()
+            ),
+            None,
+        )
+        if bridge_id is None:
+            raise ValueError(f"Invalid bridge: {bridge}. Available bridges: {bridges}")
+    else:
+        bridge_id = int(bridge)
+
+    validate_searched_entity(bridge_id, bridges, "bridge")
+    return bridge_id
+
+
+def validate_searched_entity(
+    entity: Union[str, int], entities: List[str], entity_type: str = ""
+) -> None:
+    """
+    Validates the searched entity by checking if it exists in the list of entities.
+
+    Parameters:
+        entity (Union[str, int]): The entity to be validated.
+        entities (List[str]): The list of entities to search in.
+        entity_type (str): The type of the entity (optional).
+
+    Raises:
+        ValueError: If the entity is not found in the list of entities.
+
+    Returns:
+        None
+    """
+    if entity not in entities:
+        raise ValueError(f"Invalid {entity_type}: {entity}. Available: {entities}")
