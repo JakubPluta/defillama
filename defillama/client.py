@@ -35,7 +35,7 @@ class ApiSectionsEnum(str, enum.Enum):
     FEES = "fees"
 
 
-class DataTypeEnum(str, enum.Enum):
+class DexDataTypeEnum(str, enum.Enum):
     """The available data types."""
 
     dailyVolume = "dailyVolume"
@@ -75,7 +75,7 @@ class DefiLlamaClient:
             **kwargs (dict): Additional keyword arguments.
         """
 
-        self._urls = {
+        self._urls: Dict[ApiSectionsEnum, str] = {
             ApiSectionsEnum.TVL: "https://api.llama.fi",
             ApiSectionsEnum.COINS: "https://coins.llama.fi",
             ApiSectionsEnum.STABLECOINS: "https://stablecoins.llama.fi",
@@ -111,7 +111,8 @@ class DefiLlamaClient:
         self, section: ApiSectionsEnum, endpoint: str, *args
     ) -> str:
         """
-        Builds and returns the endpoint URL for the given API section, endpoint, and optional arguments.
+        Builds and returns the endpoint URL for the given API section,
+        endpoint, and optional arguments.
 
         Parameters:
             section (ApiSectionsEnum): The API section.
@@ -444,7 +445,8 @@ class DefiLlamaClient:
             >>> client = DefiLlamaClient()
             >>> protocols = client.get_protocols()
             >>> print(protocols[0])
-            {'id': '2269', 'name': 'Binance CEX', 'address': None, 'symbol': '-', 'chain': 'Multi-Chain','gecko_id': None, ..., 'slug': 'binance-cex', ...}
+            {'id': '2269', 'name': 'Binance CEX', 'address': None, 'symbol': '-',
+            'chain': 'Multi-Chain','gecko_id': None, ..., 'slug': 'binance-cex', ...}
         """
         return self._get(ApiSectionsEnum.TVL, "protocols")
 
@@ -468,9 +470,6 @@ class DefiLlamaClient:
         Returns:
             A list of dictionaries representing the historical TVL data for each chain. Each dictionary contains
             the date and the corresponding TVL value.
-
-        Response:
-            [{'date': 1530230400, 'tvl': 20541.94079040033}, {'date': 1530316800, 'tvl': 20614.458266145004}]
         """
         return self._get(ApiSectionsEnum.TVL, "v2", "historicalChainTvl")
 
@@ -483,10 +482,8 @@ class DefiLlamaClient:
         Returns:
             The historical TVL for the specified chain. The returned data is a list of dictionaries, where each
             dictionary contains the date and the corresponding TVL value.
-
-        Response:
-            [{'date': 1626220800, 'tvl': 68353955.52897093}, {'date': 1626307200, 'tvl': 62829548.17372862}]
         """
+
         validate_searched_entity(chain.lower(), self._chains, "chain")
         return self._get(ApiSectionsEnum.TVL, "v2", "historicalChainTvl", chain)
 
@@ -535,7 +532,6 @@ class DefiLlamaClient:
 
         Returns:
             List[Dict[Any, Any]]: The current market capitalization of stablecoins on each chain.
-
         """
         return self._get(ApiSectionsEnum.STABLECOINS, "stablecoinchains")
 
@@ -637,7 +633,7 @@ class DefiLlamaClient:
         """
         Get the historical APY and TVL for a specific pool.
 
-        Args:
+        Parameters:
             pool (str): The ID of the pool or Symbol.
 
         Returns:
@@ -675,7 +671,7 @@ class DefiLlamaClient:
         """
         Retrieves a list of bridges from the API.
 
-        Params:
+        Parameters:
             include_chains (bool, optional): Whether to include current previous day volume breakdown by chain. Defaults to True.
 
         Returns:
@@ -763,8 +759,8 @@ class DefiLlamaClient:
             end_timestamp (int, optional): The end timestamp for filtering transactions. Defaults to None.
             source_chain (str, optional): The source chain for filtering transactions. Defaults to None.
             address (str, optional): Returns only transactions with specified address as "from" or "to".
-                Addresses are quried in the form {chain}:{address}, where chain is an identifier such as ethereum, bsc,
-                polygon, avax... .
+                Addresses are quried in the form {chain}:{address}, where chain is an identifier
+                such as ethereum, bsc, polygon, avax... .
             limit (int, optional): The maximum number of transactions to retrieve. Defaults to 200.
 
         Returns:
@@ -790,7 +786,7 @@ class DefiLlamaClient:
         self,
         exclude_total_data_chart: bool = True,
         exclude_total_data_chart_breakdown: bool = True,
-        dataType: DataTypeEnum = DataTypeEnum.dailyVolume,
+        dataType: DexDataTypeEnum = "dailyVolume",
     ) -> Dict[Any, Any]:
         """
         List all DEXes with all summaries of their volumes and dataType history.
@@ -798,7 +794,8 @@ class DefiLlamaClient:
         Parameters:
             exclude_total_data_chart (bool, optional): Whether to exclude aggregated chart from response. Defaults to True.
             exclude_total_data_chart_breakdown (bool, optional): Whether to exclude broken down chart from response. Defaults to True.
-            dataType (DataTypeEnum, optional): The type of data to retrieve. Defaults to DataTypeEnum.dailyVolume. Options: [DataTypeEnum.dailyVolume, DataTypeEnum.totalVolume]
+            dataType (DexDataTypeEnum, optional): The type of data to retrieve. Defaults to DexDataTypeEnum.dailyVolume.
+                Options: [DexDataTypeEnum.dailyVolume, DexDataTypeEnum.totalVolume]
 
         Returns:
             The overview of the volume data for DEXs.
@@ -817,7 +814,7 @@ class DefiLlamaClient:
         chain: str,
         exclude_total_data_chart: bool = True,
         exclude_total_data_chart_breakdown: bool = True,
-        dataType: DataTypeEnum = DataTypeEnum.dailyVolume,
+        dataType: DexDataTypeEnum = "dailyVolume",
     ):
         """
         List all DEXes for a specific chain with all summaries of their volumes and dataType history.
@@ -826,7 +823,8 @@ class DefiLlamaClient:
             chain (str): The chain for which to retrieve the volume overview.
             exclude_total_data_chart (bool, optional): Whether to exclude aggregated chart from response. Defaults to True.
             exclude_total_data_chart_breakdown (bool, optional): Whether to exclude broken down chart from response. Defaults to True.
-            dataType (DataTypeEnum, optional): The type of data to retrieve. Defaults to DataTypeEnum.dailyVolume. Options: [DataTypeEnum.dailyVolume, DataTypeEnum.totalVolume]
+            dataType (DexDataTypeEnum, optional): The type of data to retrieve. Defaults to DexDataTypeEnum.dailyVolume.
+                Options: [DexDataTypeEnum.dailyVolume, DexDataTypeEnum.totalVolume]
 
         Raises:
             ValueError: If an invalid chain is provided.
@@ -850,7 +848,7 @@ class DefiLlamaClient:
         protocol: str,
         exclude_total_data_chart: bool = True,
         exclude_total_data_chart_breakdown: bool = True,
-        dataType: DataTypeEnum = DataTypeEnum.dailyVolume,
+        dataType: DexDataTypeEnum = "dailyVolume",
     ) -> Dict[Any, Any]:
         """
         Get the summary of the DEX volume with historical data.
@@ -859,8 +857,8 @@ class DefiLlamaClient:
             protocol (str): The protocol slug.
             exclude_total_data_chart (bool, optional): Whether to exclude aggregated chart from response. Defaults to True.
             exclude_total_data_chart_breakdown (bool, optional): Whether to exclude broken down chart from response. Defaults to True.
-            dataType (DataTypeEnum, optional): The type of data to retrieve. Defaults to DataTypeEnum.dailyVolume. Options: [DataTypeEnum.dailyVolume, DataTypeEnum.totalVolume]
-
+            dataType (DexDataTypeEnum, optional): The type of data to retrieve. Defaults to DexDataTypeEnum.dailyVolume.
+                Options: [DexDataTypeEnum.dailyVolume, DexDataTypeEnum.totalVolume]
 
         Returns:
             The summary of the DEX volume with historical data.
@@ -884,7 +882,7 @@ class DefiLlamaClient:
         self,
         exclude_total_data_chart: bool = True,
         exclude_total_data_chart_breakdown: bool = True,
-        dataType: OptionsDataTypeEnum = OptionsDataTypeEnum.dailyPremiumVolume,
+        dataType: OptionsDataTypeEnum = "dailyPremiumVolume",
     ) -> Dict[Any, Any]:
         """
         List all options dexs along with summaries of their options and dataType history.
@@ -893,7 +891,7 @@ class DefiLlamaClient:
             exclude_total_data_chart (bool, optional): Whether to exclude aggregated chart from response. Defaults to True.
             exclude_total_data_chart_breakdown (bool, optional): Whether to exclude broken down chart from response. Defaults to True.
             dataType (OptionsDataTypeEnum, optional): The type of data to retrieve. One of these:
-            dailyPremiumVolume, dailyNotionalVolume, totalPremiumVolume, totalNotionalVolume. Defaults to OptionsDataTypeEnum.dailyPremiumVolume.
+                dailyPremiumVolume, dailyNotionalVolume, totalPremiumVolume, totalNotionalVolume. Defaults to OptionsDataTypeEnum.dailyPremiumVolume.
 
         Returns:
             Dict[Any, Any]: The options for the overview dexes.
@@ -912,7 +910,7 @@ class DefiLlamaClient:
         chain: str,
         exclude_total_data_chart: bool = True,
         exclude_total_data_chart_breakdown: bool = True,
-        dataType: OptionsDataTypeEnum = OptionsDataTypeEnum.dailyPremiumVolume,
+        dataType: OptionsDataTypeEnum = "dailyPremiumVolume",
     ):
         """
         List all options dexs along with summaries of their options and dataType history for specific chain.
@@ -922,7 +920,7 @@ class DefiLlamaClient:
             exclude_total_data_chart (bool, optional): Whether to exclude aggregated chart from response. Defaults to True.
             exclude_total_data_chart_breakdown (bool, optional): Whether to exclude broken down chart from response. Defaults to True.
             dataType (OptionsDataTypeEnum, optional): The type of data to retrieve. One of these:
-            dailyPremiumVolume, dailyNotionalVolume, totalPremiumVolume, totalNotionalVolume. Defaults to OptionsDataTypeEnum.dailyPremiumVolume.
+                dailyPremiumVolume, dailyNotionalVolume, totalPremiumVolume, totalNotionalVolume. Defaults to OptionsDataTypeEnum.dailyPremiumVolume.
 
         Returns:
             Dict[Any, Any]: The options for the overview dexes.
@@ -941,15 +939,16 @@ class DefiLlamaClient:
     def get_summary_of_options_volume_with_historical_data_for_protocol(
         self,
         protocol: str,
-        dataType: OptionsDataTypeEnum = OptionsDataTypeEnum.dailyPremiumVolume,
+        dataType: OptionsDataTypeEnum = "dailyPremiumVolume",
     ):
         """
         Retrieves the summary of options volume with historical data for a given protocol.
         To list availabl options protocols use: DefiLlamaClient().list_options_protocols()
 
-        Args:
+        Parameters:
             protocol (str): The protocol for which to retrieve the volume data.
-            dataType (OptionsDataTypeEnum, optional): The type of options data to retrieve. Defaults to OptionsDataTypeEnum.dailyPremiumVolume.
+            dataType (OptionsDataTypeEnum, optional): The type of data to retrieve. One of these:
+                dailyPremiumVolume, dailyNotionalVolume, totalPremiumVolume, totalNotionalVolume. Defaults to OptionsDataTypeEnum.dailyPremiumVolume.
 
         Returns:
             The summary of options volume data for the specified protocol and data type.
@@ -966,16 +965,16 @@ class DefiLlamaClient:
         self,
         exclude_total_data_chart: bool = True,
         exclude_total_data_chart_breakdown: bool = True,
-        dataType: FeesDataTypeEnum = FeesDataTypeEnum.dailyFees,
+        dataType: FeesDataTypeEnum = "dailyFees",
     ) -> Dict[Any, Any]:
         """
         Retrieves the fees and revenues for all protocols.
 
-        Args:
+        Parameters:
             exclude_total_data_chart (bool, optional): Whether to exclude the total data chart. Defaults to True.
             exclude_total_data_chart_breakdown (bool, optional): Whether to exclude the breakdown of the total data chart. Defaults to True.
-            dataType (FeesDataTypeEnum, optional): The type of fees data to retrieve. Defaults to FeesDataTypeEnum.dailyFees.
-
+            dataType (FeesDataTypeEnum, optional): The type of fees data to retrieve. One of these:
+                FeesDataTypeEnum.dailyFees, FeesDataTypeEnum.totalFees, FeesDataTypeEnum.dailyRevenue, FeesDataTypeEnum.totalRevenue
         Returns:
             The fees and revenues data for all protocols.
         """
@@ -1002,7 +1001,8 @@ class DefiLlamaClient:
             chain (str): The chain for which to retrieve the fees and revenues.
             exclude_total_data_chart (bool, optional): Whether to exclude the total data chart. Defaults to True.
             exclude_total_data_chart_breakdown (bool, optional): Whether to exclude the breakdown of the total data chart. Defaults to True.
-            dataType (FeesDataTypeEnum, optional): The type of fees data to retrieve. Defaults to FeesDataTypeEnum.dailyFees.
+            dataType (FeesDataTypeEnum, optional): The type of fees data to retrieve. One of these:
+                FeesDataTypeEnum.dailyFees, FeesDataTypeEnum.totalFees, FeesDataTypeEnum.dailyRevenue, FeesDataTypeEnum.totalRevenue
 
         Raises:
             ValueError: If an invalid chain is provided.
@@ -1025,15 +1025,15 @@ class DefiLlamaClient:
     def get_summary_of_protocols_fees_and_revenue(
         self,
         protocol: str,
-        dataType: FeesDataTypeEnum = FeesDataTypeEnum.dailyFees,
+        dataType: FeesDataTypeEnum = "dailyFees",
     ) -> Dict[Any, Any]:
         """
         Retrieves the summary of fees and revenue for a specific protocol.
 
-        Args:
+        Parameters:
             protocol (str): The name of the protocol.
-            dataType (FeesDataTypeEnum, optional): The type of fees data to retrieve.
-            Defaults to FeesDataTypeEnum.dailyFees.
+            dataType (FeesDataTypeEnum, optional): The type of fees data to retrieve. One of these:
+                FeesDataTypeEnum.dailyFees, FeesDataTypeEnum.totalFees, FeesDataTypeEnum.dailyRevenue, FeesDataTypeEnum.totalRevenue
 
         Raises:
             ValueError: If the protocol is invalid.
@@ -1054,45 +1054,36 @@ class DefiLlamaClient:
         """
         Retrieves the current prices of tokens by contract address.
 
-        To see all available chains use client.chains
-        To see all available coingecko ids use client.get_coingecko_coin_ids()
-        You can use coingecko as a chain, and then use coin gecko ids instead of contract addresses to find a token.
-        Like: coins = "coingecko:uniswap,coingecko:ethereum" or Coin("coingecko:uniswap") or {"chain": "coingecko", "address": "uniswap"}
+        To see all available chains use `client.list_chains()`
+        To see all available coingecko ids use `client.get_coingecko_coin_ids()`
 
-        Args:
+        You can use coingecko as a chain, and then use coin gecko ids instead of contract addresses:
+            >>> coins = "coingecko:uniswap,coingecko:ethereum"
+            >>> coins = Coin("coingecko:uniswap")
+            >>> coins = {"chain": "coingecko", "address": "uniswap"}
+
+        Parameteres:
             coins (Union[str, Coin, Dict[str, str], List[Coin], List[Dict[str, str]]]): The tokens to retrieve prices for.
-                Can be a Coin, a Dict, a list of Coin objects or dictionaries containing token details, or a string with coma separated tokens in format chain:address
-            search_width (str, optional): Time range on either side to find price data, defaults to 6 hours. Defaults to "6h". Can use regular chart candle notion like 4h etc where: W = week, D = day, H = hour, M = minute (not case sensitive)
+                Can be a Coin, a Dict, a list of Coin objects or dictionaries containing token details,
+                or a string with coma separated tokens in format chain:address
+            search_width (str, optional): Time range on either side to find price data, defaults to 6 hours.
+                Can use regular chart candle notion like 4h etc where:
+                W = week, D = day, H = hour, M = minute (not case sensitive)
         Returns:
             The current prices of the tokens specified.
 
         Examples:
-
-            # Retrieve the current prices of tokens by contract address
-            >>> client.get_current_prices_of_tokens_by_contract_address("ethereum:0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984,coingecko:ethereum")
-
-            # Retrieve the current prices of tokens by contract address by providing a list of dictionaries
+            >>> client.get_current_prices_of_tokens_by_contract_address(
+                "ethereum:0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984,coingecko:ethereum"
+                )
             >>> client.get_current_prices_of_tokens_by_contract_address([
-                    {
-                        "chain": "ethereum",
-                        "address": "0xdF574c24545E5FfEcb9a659c229253D4111d87e1",
-                    },
-                    {
-                        "chain": "ethereum",
-                        "address": "0xdB25f211AB05b1c97D595516F45794528a807ad8",
-                    },
-                    {
-                        "chain": "coingecko",
-                        "address": "uniswap",
-                    },
-                    {
-                        "chain": "bsc",
-                        "address": "0x762539b45a1dcce3d36d080f74d1aed37844b878",
-                    }
+                    {"chain": "ethereum","address": "0xdF574c24545E5FfEcb9a659c229253D4111d87e1"},
+                    {"chain": "coingecko","address": "uniswap"},
                 ])
-
-            # Retrieve the current prices of tokens by contract address by providing a list of Coin objects
-            >>> client.get_current_prices_of_tokens_by_contract_address([Coin("ethereum", "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984"), Coin("bsc", "0x762539b45a1dcce3d36d080f74d1aed37844b878")])
+            >>> client.get_current_prices_of_tokens_by_contract_address([
+                Coin("ethereum", "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984"),
+                Coin("bsc", "0x762539b45a1dcce3d36d080f74d1aed37844b878")
+                ])
         """
 
         coins_to_search = prepare_coins_for_request(coins)
@@ -1113,44 +1104,37 @@ class DefiLlamaClient:
         """
         Retrieves the historical prices of tokens by contract address.
 
-        To see all available chains use client.chains
-        To see all available coingecko ids use client.get_coingecko_coin_ids()
-        You can use coingecko as a chain, and then use coin gecko ids instead of contract addresses to find a token.
-        Like: coins = "coingecko:uniswap,coingecko:ethereum" or Coin("coingecko:uniswap") or {"chain": "coingecko", "address": "uniswap"}
+        To see all available chains use `client.list_chains()`
+        To see all available coingecko ids use `client.get_coingecko_coin_ids()`
 
-        Args:
+        You can use coingecko as a chain, and then use coin gecko ids instead of contract addresses:
+            >>> coins = "coingecko:uniswap,coingecko:ethereum"
+            >>> coins = Coin("coingecko:uniswap")
+            >>> coins = {"chain": "coingecko", "address": "uniswap"}
+
+        Parameters:
             coins (Union[str, Coin, Dict[str, str], List[Coin], List[Dict[str, str]]]): The tokens to retrieve prices for.
-                Can be a Coin, a Dict, a list of Coin objects or dictionaries containing token details, or a string with coma separated tokens in format chain:address
+                Can be a Coin, a Dict, a list of Coin objects or dictionaries containing token details,
+                or a string with coma separated tokens in format chain:address
             timestamp (int, optional): The timestamp to retrieve prices for.
-            search_width (str, optional): Time range on either side to find price data, defaults to 6 hours. Defaults to "6h". Can use regular chart candle notion like 4h etc where: W = week, D = day, H = hour, M = minute (not case sensitive)
+            search_width (str, optional): Time range on either side to find price data, defaults to 6 hours.
+                Can use regular chart candle notion like 4h etc where:
+                W = week, D = day, H = hour, M = minute (not case sensitive)
         Returns:
             The historical prices of the tokens specified.
 
         Examples:
-
-            >>> client.get_historical_prices_of_tokens_by_contract_address("ethereum:0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984,coingecko:ethereum", timestamp=1650000000)
+            >>> client.get_historical_prices_of_tokens_by_contract_address(
+                "ethereum:0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984,coingecko:ethereum"
+                , timestamp=1650000000)
             >>> client.get_historical_prices_of_tokens_by_contract_address([
-                    {
-                        "chain": "ethereum",
-                        "address": "0xdF574c24545E5FfEcb9a659c229253D4111d87e1",
-                    },
-                    {
-                        "chain": "ethereum",
-                        "address": "0xdB25f211AB05b1c97D595516F45794528a807ad8",
-                    },
-                    {
-                        "chain": "coingecko",
-                        "address": "uniswap",
-                    },
-                    {
-                        "chain": "bsc",
-                        "address": "0x762539b45a1dcce3d36d080f74d1aed37844b878",
-                    }
-                ],
-                timestamp=1650000000
-                )
-
-            >>> client.get_historical_prices_of_tokens_by_contract_address([Coin("ethereum", "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984"), Coin("bsc", "0x762539b45a1dcce3d36d080f74d1aed37844b878")], timestamp=1650000000)
+                    {"chain": "ethereum","address": "0xdF574c24545E5FfEcb9a659c229253D4111d87e1"},
+                    {"chain": "coingecko","address": "uniswap"},
+                ], timestamp=1650000000)
+            >>> client.get_historical_prices_of_tokens_by_contract_address([
+                Coin("ethereum", "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984"),
+                Coin("bsc", "0x762539b45a1dcce3d36d080f74d1aed37844b878")
+                ], timestamp=1650000000)
         """
 
         coins_to_search = prepare_coins_for_request(coins)
@@ -1175,45 +1159,40 @@ class DefiLlamaClient:
         """
         Retrieves token prices at regular time intervals.
 
-        To see all available chains use client.chains
-        To see all available coingecko ids use client.get_coingecko_coin_ids()
-        You can use coingecko as a chain, and then use coin gecko ids instead of contract addresses to find a token.
-        Like: coins = "coingecko:uniswap,coingecko:ethereum" or Coin("coingecko:uniswap") or {"chain": "coingecko", "address": "uniswap"}
+        To see all available chains use `client.list_chains()`
+        To see all available coingecko ids use `client.get_coingecko_coin_ids()`
 
-        Args:
+        You can use coingecko as a chain, and then use coin gecko ids instead of contract addresses:
+            >>> coins = "coingecko:uniswap,coingecko:ethereum"
+            >>> coins = Coin("coingecko:uniswap")
+            >>> coins = {"chain": "coingecko", "address": "uniswap"}
+
+        Parameteres:
             coins (Union[str, Coin, Dict[str, str], List[Coin], List[Dict[str, str]]]): The tokens to retrieve prices for.
-                Can be a Coin, a Dict, a list of Coin objects or dictionaries containing token details, or a string with coma separated tokens in format chain:address
+                Can be a Coin, a Dict, a list of Coin objects or dictionaries containing token details,
+                or a string with coma separated tokens in format chain:address
             start (int, optional): The start timestamp to retrieve prices for. Defaults to None.
             end (int, optional): The end timestamp to retrieve prices for. Defaults to None.
             span (int, optional): Number of data points returned, defaults to 0
             period (str, optional): Duration between data points, defaults to 24 hours
-            search_width (str, optional): Time range on either side to find price data, defaults to 6 hours. Defaults to "6h". Can use regular chart candle notion like 4h etc where: W = week, D = day, H = hour, M = minute (not case sensitive)
+            search_width (str, optional): Time range on either side to find price data, defaults to 6 hours.
+                Can use regular chart candle notion like 4h etc where:
+                W = week, D = day, H = hour, M = minute (not case sensitive)
         Returns:
             The token prices at regular time intervals.
 
         Examples:
-
-            >>> client.get_token_prices_candle("ethereum:0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984,coingecko:ethereum")
+            >>> client.get_token_prices_candle(
+                "ethereum:0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984,coingecko:ethereum"
+                )
             >>> client.get_token_prices_candle([
-                    {
-                        "chain": "ethereum",
-                        "address": "0xdF574c24545E5FfEcb9a659c229253D4111d87e1",
-                    },
-                    {
-                        "chain": "ethereum",
-                        "address": "0xdB25f211AB05b1c97D595516F45794528a807ad8",
-                    },
-                    {
-                        "chain": "coingecko",
-                        "address": "uniswap",
-                    },
-                    {
-                        "chain": "bsc",
-                        "address": "0x762539b45a1dcce3d36d080f74d1aed37844b878",
-                    }
+                    {"chain": "ethereum","address": "0xdF574c24545E5FfEcb9a659c229253D4111d87e1"},
+                    {"chain": "coingecko","address": "uniswap"},
                 ])
-
-            >>> client.get_token_prices_candle([Coin("ethereum", "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984"), Coin("bsc", "0x762539b45a1dcce3d36d080f74d1aed37844b878")])
+            >>> client.get_token_prices_candle([
+                Coin("ethereum", "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984"),
+                Coin("bsc", "0x762539b45a1dcce3d36d080f74d1aed37844b878")
+                ])
         """
 
         start = get_previous_timestamp(start) if start else None
@@ -1239,43 +1218,38 @@ class DefiLlamaClient:
         """
         Retrieves token price percentage change over time.
 
-        To see all available chains use client.chains
-        To see all available coingecko ids use client.get_coingecko_coin_ids()
-        You can use coingecko as a chain, and then use coin gecko ids instead of contract addresses to find a token.
-        Like: coins = "coingecko:uniswap,coingecko:ethereum" or Coin("coingecko:uniswap") or {"chain": "coingecko", "address": "uniswap"}
+        To see all available chains use `client.list_chains()`
+        To see all available coingecko ids use `client.get_coingecko_coin_ids()`
 
-        Args:
+        You can use coingecko as a chain, and then use coin gecko ids instead of contract addresses:
+            >>> coins = "coingecko:uniswap,coingecko:ethereum"
+            >>> coins = Coin("coingecko:uniswap")
+            >>> coins = {"chain": "coingecko", "address": "uniswap"}
+
+        Parameters:
             coins (Union[str, Coin, Dict[str, str], List[Coin], List[Dict[str, str]]]): The tokens to retrieve prices for.
-                Can be a Coin, a Dict, a list of Coin objects or dictionaries containing token details, or a string with coma separated tokens in format chain:address
+                Can be a Coin, a Dict, a list of Coin objects or dictionaries containing token details,
+                or a string with coma separated tokens in format chain:address
             timestamp (int, optional): The start timestamp to retrieve prices for. Defaults to time now
-            look_forward (bool, optional): Whether you want the duration after your given timestamp or not, defaults to false (looking back)
+            look_forward (bool, optional): Whether you want the duration after your given timestamp or not,
+                defaults to false (looking back)
             period (str, optional): Duration between data points, defaults to 24 hours
+
         Returns:
             The token price percentage change over time.
 
         Examples:
-
-            >>> client.get_percentage_change_in_coin_price("ethereum:0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984,coingecko:ethereum")
+            >>> client.get_percentage_change_in_coin_price(
+                "ethereum:0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984,coingecko:ethereum"
+                )
             >>> client.get_percentage_change_in_coin_price([
-                    {
-                        "chain": "ethereum",
-                        "address": "0xdF574c24545E5FfEcb9a659c229253D4111d87e1",
-                    },
-                    {
-                        "chain": "ethereum",
-                        "address": "0xdB25f211AB05b1c97D595516F45794528a807ad8",
-                    },
-                    {
-                        "chain": "coingecko",
-                        "address": "uniswap",
-                    },
-                    {
-                        "chain": "bsc",
-                        "address": "0x762539b45a1dcce3d36d080f74d1aed37844b878",
-                    }
+                    {"chain": "ethereum","address": "0xdF574c24545E5FfEcb9a659c229253D4111d87e1"},
+                    {"chain": "coingecko","address": "uniswap"},
                 ])
-
-            >>> client.get_percentage_change_in_coin_price([Coin("ethereum", "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984"), Coin("bsc", "0x762539b45a1dcce3d36d080f74d1aed37844b878")])
+            >>> client.get_percentage_change_in_coin_price([
+                Coin("ethereum", "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984"),
+                Coin("bsc", "0x762539b45a1dcce3d36d080f74d1aed37844b878")
+                ])
         """
 
         coins_to_search = prepare_coins_for_request(coins)
@@ -1295,42 +1269,32 @@ class DefiLlamaClient:
         """
         Get the earliest timestamped price record for the given coins.
 
-        To see all available chains use client.chains
-        To see all available coingecko ids use client.get_coingecko_coin_ids()
-        You can use coingecko as a chain, and then use coin gecko ids instead of contract addresses to find a token.
-        Like: coins = "coingecko:uniswap,coingecko:ethereum" or Coin("coingecko:uniswap") or {"chain": "coingecko", "address": "uniswap"}
+        To see all available chains use `client.list_chains()`
+        To see all available coingecko ids use `client.get_coingecko_coin_ids()`
 
-        Args:
+        You can use coingecko as a chain, and then use coin gecko ids instead of contract addresses:
+            >>> coins = "coingecko:uniswap,coingecko:ethereum"
+            >>> coins = Coin("coingecko:uniswap")
+            >>> coins = {"chain": "coingecko", "address": "uniswap"}
+
+        Parameters:
             coins (Union[str, Coin, Dict[str, str], List[Coin], List[Dict[str, str]]]): The tokens to retrieve prices for.
-                Can be a Coin, a Dict, a list of Coin objects or dictionaries containing token details, or a string with coma separated tokens in format chain:address
+                Can be a Coin, a Dict, a list of Coin objects or dictionaries containing token details,
+                or a string with coma separated tokens in format chain:address
 
         Returns:
             The earliest timestamped price record for the given coins.
 
         Examples:
-
             >>> client.get_earliest_timestamp_price_record_for_coins("ethereum:0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984,coingecko:ethereum")
             >>> client.get_earliest_timestamp_price_record_for_coins([
-                    {
-                        "chain": "ethereum",
-                        "address": "0xdF574c24545E5FfEcb9a659c229253D4111d87e1",
-                    },
-                    {
-                        "chain": "ethereum",
-                        "address": "0xdB25f211AB05b1c97D595516F45794528a807ad8",
-                    },
-                    {
-                        "chain": "coingecko",
-                        "address": "uniswap",
-                    },
-                    {
-                        "chain": "bsc",
-                        "address": "0x762539b45a1dcce3d36d080f74d1aed37844b878",
-                    }
+                    {"chain": "ethereum","address": "0xdF574c24545E5FfEcb9a659c229253D4111d87e1"},
+                    {"chain": "coingecko","address": "uniswap"}
                 ])
-
-            >>> client.get_earliest_timestamp_price_record_for_coins([Coin("ethereum", "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984"), Coin("bsc", "0x762539b45a1dcce3d36d080f74d1aed37844b878")])
-
+            >>> client.get_earliest_timestamp_price_record_for_coins([
+                Coin("ethereum", "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984"),
+                Coin("bsc", "0x762539b45a1dcce3d36d080f74d1aed37844b878")
+                ])
         """
         return self._get(ApiSectionsEnum.COINS, "prices", "first", coins)
 
@@ -1340,7 +1304,7 @@ class DefiLlamaClient:
         """
         Get the closest block to the given timestamp for a specific chain.
 
-        Args:
+        Parameters:
             chain (str): Chain which you want to get the block from
             timestamp (int): UNIX timestamp of the block you are searching for
 

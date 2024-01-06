@@ -224,9 +224,9 @@ def get_bridge_id(bridge: Union[str, int], bridges: Dict[str, str]) -> int:
     Examples:
         >>> bridges = {'1': 'Bridge 1', '2': 'Bridge 2'}
         >>> get_bridge_id('Bridge 1', bridges)
-        1
+        >>> 1
         >>> get_bridge_id(2, bridges)
-        2
+        >>> 2
         >>> get_bridge_id('Invalid Bridge', bridges)
         ValueError: Invalid bridge: Invalid Bridge. Available bridges: {'1': 'Bridge 1', '2': 'Bridge 2'}
     """
