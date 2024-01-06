@@ -145,6 +145,7 @@ def get_previous_timestamp(delta_days: int = 90) -> int:
     Returns:
         int: The timestamp representing the specified number of days before the current time.
     """
+    print(">>>>>>", datetime.datetime.now())
     return int(
         datetime.datetime.now().timestamp()
         - datetime.timedelta(days=delta_days).total_seconds()

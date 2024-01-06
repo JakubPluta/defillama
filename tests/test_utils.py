@@ -1,7 +1,9 @@
 import datetime
 from typing import Dict, Union
+from unittest import mock
 
 import requests
+import defillama
 import pytest
 
 from requests.exceptions import HTTPError
@@ -145,41 +147,12 @@ def test_prepare_coins_for_request(coins, expected_result):
     assert prepare_coins_for_request(coins) == expected_result
 
 
-@pytest.mark.parametrize(
-    "delta_days, expected_timestamp",
-    [
-        (
-            90,
-            int(
-                datetime.datetime.now().timestamp()
-                - datetime.timedelta(days=90).total_seconds()
-            ),
-        ),
-        (
-            30,
-            int(
-                datetime.datetime.now().timestamp()
-                - datetime.timedelta(days=30).total_seconds()
-            ),
-        ),
-        (
-            0,
-            int(
-                datetime.datetime.now().timestamp()
-                - datetime.timedelta(days=0).total_seconds()
-            ),
-        ),
-        (
-            -30,
-            int(
-                datetime.datetime.now().timestamp()
-                - datetime.timedelta(days=-30).total_seconds()
-            ),
-        ),
-    ],
-)
-def test_get_previous_timestamp(delta_days, expected_timestamp):
-    assert get_previous_timestamp(delta_days) == expected_timestamp
+@mock.patch(f"{defillama.utils.__name__}.datetime", wraps=datetime)
+def test_get_previous_timestamp(mock_datetime):
+    mock_datetime.datetime.now.return_value = datetime.datetime(2022, 12, 31)
+    assert get_previous_timestamp(90) == 1664665200
+    assert get_previous_timestamp(30) == 1669849200
+    assert get_previous_timestamp(0) == 1672441200
 
 
 @pytest.fixture
