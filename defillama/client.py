@@ -1,24 +1,24 @@
 import enum
 from functools import cached_property
-from dtypes import Coin, UUIDstr
 from typing import Any, Dict, List, Optional, Union
 import uuid
 import requests
+from slugify import slugify
 
-from exc import InvalidResponseDataException, InvalidResponseStatusCodeException
-from utils import (
+from defillama.dtypes import Coin, UUIDstr
+from defillama.exc import InvalidResponseDataException
+from defillama.utils import (
     get_bridge_id,
     get_previous_timestamp,
     get_retry_session,
     get_stablecoin_id,
-    timestamp_converter,
     get_coingecko_coin_ids,
     read_coingecko_ids_from_file,
     prepare_coins_for_request,
     validate_searched_entity,
 )
-from log import get_logger
-from slugify import slugify
+from defillama.log import get_logger
+
 
 log = get_logger(__name__)
 
@@ -103,7 +103,7 @@ class DefiLlamaClient:
             ValueError: If the specified section is not valid.
         """
 
-        if section not in self._urls.keys():
+        if section not in self._urls:
             raise ValueError(f"Invalid section: {section}")
         return self._urls[section]
 
@@ -417,8 +417,10 @@ class DefiLlamaClient:
 
         Parameters:
             skip (int, optional): The number of CoinGecko coin IDs to skip. Defaults to 0.
-            limit (int, optional): The maximum number of CoinGecko coin IDs to retrieve. Defaults to None. If None, retrieves all CoinGecko coin IDs.
-            from_gecko_api (bool, optional): Whether to retrieve CoinGecko coin IDs from CoinGecko API or from local file. Defaults to False.
+            limit (int, optional): The maximum number of CoinGecko coin IDs to retrieve.
+                Defaults to None. If None, retrieves all CoinGecko coin IDs.
+            from_gecko_api (bool, optional): Whether to retrieve CoinGecko coin IDs from CoinGecko API
+                or from local file. Defaults to False.
 
         Returns:
             A list of CoinGecko coin IDs.
@@ -428,7 +430,8 @@ class DefiLlamaClient:
             coingecko_ids: List[str] = get_coingecko_coin_ids()
         else:
             log.info(
-                "Retrieving CoinGecko coin IDs from file. If you want to retrieve CoinGecko IDs from CoinGecko API, set `from_gecko_api=True`"
+                "Retrieving CoinGecko coin IDs from file."
+                "If you want to retrieve CoinGecko IDs from CoinGecko API, set `from_gecko_api=True`"
             )
             coingecko_ids: List[str] = read_coingecko_ids_from_file()
         return coingecko_ids[skip : skip + limit] if limit else coingecko_ids[skip:]
@@ -648,8 +651,8 @@ class DefiLlamaClient:
         """
         try:
             uuid.UUID(pool)
-        except ValueError:
-            log.debug(f"Invalid pool id: {pool}")
+        except ValueError as e:
+            log.debug("Invalid pool id: %s", pool)
             pool_id = next(
                 (
                     k
@@ -661,7 +664,7 @@ class DefiLlamaClient:
             if pool_id is None:
                 raise ValueError(
                     f"Invalid pool: {pool}. To see available pools, use DefiLlamaClient().list_pools()"
-                )
+                ) from e
         else:
             pool_id = pool
 
@@ -759,7 +762,7 @@ class DefiLlamaClient:
             end_timestamp (int, optional): The end timestamp for filtering transactions. Defaults to None.
             source_chain (str, optional): The source chain for filtering transactions. Defaults to None.
             address (str, optional): Returns only transactions with specified address as "from" or "to".
-                Addresses are quried in the form {chain}:{address}, where chain is an identifier
+                Addresses are queried in the form {chain}:{address}, where chain is an identifier
                 such as ethereum, bsc, polygon, avax... .
             limit (int, optional): The maximum number of transactions to retrieve. Defaults to 200.
 
@@ -891,7 +894,8 @@ class DefiLlamaClient:
             exclude_total_data_chart (bool, optional): Whether to exclude aggregated chart from response. Defaults to True.
             exclude_total_data_chart_breakdown (bool, optional): Whether to exclude broken down chart from response. Defaults to True.
             dataType (OptionsDataTypeEnum, optional): The type of data to retrieve. One of these:
-                dailyPremiumVolume, dailyNotionalVolume, totalPremiumVolume, totalNotionalVolume. Defaults to OptionsDataTypeEnum.dailyPremiumVolume.
+                dailyPremiumVolume, dailyNotionalVolume, totalPremiumVolume, totalNotionalVolume.
+                Defaults to OptionsDataTypeEnum.dailyPremiumVolume.
 
         Returns:
             Dict[Any, Any]: The options for the overview dexes.
@@ -920,7 +924,8 @@ class DefiLlamaClient:
             exclude_total_data_chart (bool, optional): Whether to exclude aggregated chart from response. Defaults to True.
             exclude_total_data_chart_breakdown (bool, optional): Whether to exclude broken down chart from response. Defaults to True.
             dataType (OptionsDataTypeEnum, optional): The type of data to retrieve. One of these:
-                dailyPremiumVolume, dailyNotionalVolume, totalPremiumVolume, totalNotionalVolume. Defaults to OptionsDataTypeEnum.dailyPremiumVolume.
+                dailyPremiumVolume, dailyNotionalVolume, totalPremiumVolume, totalNotionalVolume.
+                Defaults to OptionsDataTypeEnum.dailyPremiumVolume.
 
         Returns:
             Dict[Any, Any]: The options for the overview dexes.
@@ -943,12 +948,13 @@ class DefiLlamaClient:
     ):
         """
         Retrieves the summary of options volume with historical data for a given protocol.
-        To list availabl options protocols use: DefiLlamaClient().list_options_protocols()
+        To list available options protocols use: DefiLlamaClient().list_options_protocols()
 
         Parameters:
             protocol (str): The protocol for which to retrieve the volume data.
             dataType (OptionsDataTypeEnum, optional): The type of data to retrieve. One of these:
-                dailyPremiumVolume, dailyNotionalVolume, totalPremiumVolume, totalNotionalVolume. Defaults to OptionsDataTypeEnum.dailyPremiumVolume.
+                dailyPremiumVolume, dailyNotionalVolume, totalPremiumVolume, totalNotionalVolume.
+                Defaults to OptionsDataTypeEnum.dailyPremiumVolume.
 
         Returns:
             The summary of options volume data for the specified protocol and data type.
@@ -1062,7 +1068,7 @@ class DefiLlamaClient:
             >>> coins = Coin("coingecko:uniswap")
             >>> coins = {"chain": "coingecko", "address": "uniswap"}
 
-        Parameteres:
+        Parameters:
             coins (Union[str, Coin, Dict[str, str], List[Coin], List[Dict[str, str]]]): The tokens to retrieve prices for.
                 Can be a Coin, a Dict, a list of Coin objects or dictionaries containing token details,
                 or a string with coma separated tokens in format chain:address
@@ -1167,7 +1173,7 @@ class DefiLlamaClient:
             >>> coins = Coin("coingecko:uniswap")
             >>> coins = {"chain": "coingecko", "address": "uniswap"}
 
-        Parameteres:
+        Parameters:
             coins (Union[str, Coin, Dict[str, str], List[Coin], List[Dict[str, str]]]): The tokens to retrieve prices for.
                 Can be a Coin, a Dict, a list of Coin objects or dictionaries containing token details,
                 or a string with coma separated tokens in format chain:address
@@ -1286,7 +1292,9 @@ class DefiLlamaClient:
             The earliest timestamped price record for the given coins.
 
         Examples:
-            >>> client.get_earliest_timestamp_price_record_for_coins("ethereum:0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984,coingecko:ethereum")
+            >>> client.get_earliest_timestamp_price_record_for_coins(
+                    "ethereum:0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984,coingecko:ethereum"
+                )
             >>> client.get_earliest_timestamp_price_record_for_coins([
                     {"chain": "ethereum","address": "0xdF574c24545E5FfEcb9a659c229253D4111d87e1"},
                     {"chain": "coingecko","address": "uniswap"}

@@ -6,8 +6,8 @@ import requests
 from requests.adapters import HTTPAdapter
 from requests import HTTPError
 from requests.packages.urllib3.util.retry import Retry
-from dtypes import Coin
-from log import get_logger
+from defillama.dtypes import Coin
+from defillama.log import get_logger
 
 
 log = get_logger(__name__)
@@ -37,34 +37,7 @@ def get_retry_session(retries=5, backoff_factor=0.1) -> requests.Session:
     adapter = HTTPAdapter(max_retries=retry)
     session.mount("https://", adapter)
     session.mount("http://", adapter)
-
-    session.headers.update(
-        {
-            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/99.0.4844.84 Safari/537.36",
-        }
-    )
     return session
-
-
-def timestamp_converter(
-    timestamp: int, as_str=False, fmt: str = "%Y-%m-%d %H:%M:%S"
-) -> Union[str, datetime.datetime]:
-    """
-    Convert a Unix timestamp to a formatted string or a datetime object.
-
-    Args:
-        timestamp (int): The Unix timestamp to convert.
-        as_str (bool, optional): If True, return the formatted timestamp as a string.
-            If False, return the datetime object. Defaults to False.
-        fmt (str, optional): The format string to use when returning the formatted timestamp.
-            Defaults to "%Y-%m-%d %H:%M:%S".
-
-    Returns:
-        Union[str, datetime.datetime]: If `as_str` is True, returns the formatted timestamp as a string.
-            If `as_str` is False, returns the datetime object.
-    """
-    dt = datetime.datetime.fromtimestamp(timestamp)
-    return dt.strftime(fmt) if as_str else dt
 
 
 def get_coingecko_coin_ids() -> List[str]:
@@ -78,7 +51,7 @@ def get_coingecko_coin_ids() -> List[str]:
     try:
         response.raise_for_status()
     except HTTPError as e:
-        log.error(f"Error retrieving CoinGecko ID's. Reason: {str(e)}")
+        log.error("Error retrieving CoinGecko ID's. Reason: %s", str(e))
         raise HTTPError("Error retrieving CoinGecko IDs") from e
     return [coin["id"] for coin in response.json()]
 
@@ -107,7 +80,7 @@ def _prepare_token(token: Union[Coin, str, Dict[str, str]]) -> str:
     """
     if isinstance(token, Coin):
         return f"{token.chain}:{token.address}"
-    elif isinstance(token, dict):
+    if isinstance(token, dict):
         return f"{token['chain']}:{token['address']}"
     return token
 
@@ -119,7 +92,8 @@ def prepare_coins_for_request(
     Prepare tokens for a request.
 
     Args:
-        coins (Union[List[Union[Coin, Dict[str, str]]], str]): The tokens to prepare for the request. It can be either a list of coins or a string.
+        coins (Union[List[Union[Coin, Dict[str, str]]], str]): The tokens to prepare for the request.
+        It can be either a list of coins or a string.
 
     Returns:
         str: The prepared tokens as a comma-separated string.
@@ -129,11 +103,17 @@ def prepare_coins_for_request(
         >>> prepare_tokens_for_request(coins)
         >>> ethereum:0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984,ethereum:0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984
 
-        >>> coins = [{"chain":"ethereum","address":"0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984"},{"chain":"ethereum","address":"0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984"}]
+        >>> coins = [
+            {"chain":"ethereum","address":"0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984"},
+            {"chain":"ethereum","address":"0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984"}
+            ]
         >>> prepare_tokens_for_request(coins)
         >>> ethereum:0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984,ethereum:0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984
 
-        >>> coins = [Coin("ethereum","0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984"),Coin("ethereum","0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984")]
+        >>> coins = [
+            Coin("ethereum","0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984"),
+            Coin("ethereum","0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984")
+            ]
         >>> prepare_tokens_for_request(coins)
         >>> ethereum:0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984,ethereum:0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984
 
@@ -267,3 +247,108 @@ def validate_searched_entity(
     """
     if entity not in entities:
         raise ValueError(f"Invalid {entity_type}: {entity}. Available: {entities}")
+
+
+_DATE_FORMATS = [
+    "%Y-%m-%d %H:%M:%S",
+    "%Y-%m-%d",
+    "%m/%d/%Y",
+    "%m/%d/%Y %H:%M:%S",
+    "%d-%b-%Y",
+    "%d-%b-%y",
+    "%b %d, %Y",
+    "%b %d, %Y %H:%M:%S",
+    "%d %b %Y",
+    "%d %b %Y %H:%M:%S",
+    "%Y%m%d",
+    "%Y%m%d%H%M%S",
+    "%Y/%m/%d",
+    "%Y/%m/%d %H:%M:%S",
+    "%Y%m%d %H:%M:%S",
+    "%Y/%m/%d %I:%M:%S %p",
+    "%Y-%m-%dT%H:%M:%S.%fZ",
+    "%Y-%m-%dT%H:%M:%S.%f%z",
+    "%Y-%m-%dT%H:%M:%S",
+    "%Y-%m-%dT%H:%M:%S%z",
+    "%m-%d-%Y",
+    "%m-%d-%Y %H:%M:%S",
+    "%m/%d/%y",
+    "%m/%d/%y %H:%M:%S",
+    "%b %d %Y",
+    "%b %d %Y %H:%M:%S",
+    "%b. %d, %Y",
+    "%b. %d, %Y %H:%M:%S",
+    "%d %b, %Y",
+    "%d %b, %Y %H:%M:%S",
+    "%d %B %Y",
+    "%d %B %Y %H:%M:%S",
+    "%B %d %Y",
+    "%B %d %Y %H:%M:%S",
+]
+
+
+def convert_to_timestamp(
+    date: Union[datetime.datetime, datetime.date, str, int]
+) -> int:
+    """
+    Convert the given date to a timestamp.
+
+    Parameters:
+        date (Union[datetime.datetime, datetime.date, str, int]): The date to be converted.
+        formats (List[str], optional): A list of date formats to try when converting a string to a
+            datetime object. Defaults to _DATE_FORMATS.
+
+    Returns:
+        int: The timestamp representation of the given date.
+
+    Raises:
+        ValueError: If the date format is invalid and no valid format is found in the formats list.
+        TypeError: If the date format is not supported.
+
+    """
+
+    if isinstance(date, datetime.datetime):
+        timestamp = date.timestamp()
+    elif isinstance(date, datetime.date):
+        timestamp = datetime.datetime(date.year, date.month, date.day).timestamp()
+    elif isinstance(date, str):
+        for format in _DATE_FORMATS:
+            try:
+                timestamp = datetime.datetime.timestamp(
+                    datetime.datetime.strptime(date, format)
+                )
+                break
+            except ValueError:
+                pass
+        else:
+            raise ValueError(
+                "Invalid date format. If you want't to specify another format override DATE_FORMATS argument"
+            )
+    elif isinstance(date, int) and date not in [0, 1]:
+        timestamp = date
+    else:
+        raise TypeError(
+            "Unsupported date format. Use datetime.datetime, datetime.date, str, or int"
+        )
+    return int(timestamp)
+
+
+def convert_from_timestamp(
+    timestamp: int, as_str=False, fmt: str = "%Y-%m-%d %H:%M:%S"
+) -> Union[str, datetime.datetime]:
+    """
+    Convert a Unix timestamp to a formatted string or a datetime object.
+
+    Parameters:
+        timestamp (int): The Unix timestamp to convert.
+        as_str (bool, optional): If True, return the formatted timestamp as a string.
+            If False, return the datetime object. Defaults to False.
+        fmt (str, optional): The format string to use when returning the formatted timestamp.
+            Defaults to "%Y-%m-%d %H:%M:%S".
+
+    Returns:
+        Union[str, datetime.datetime]: If `as_str` is True, returns the formatted timestamp as a string.
+            If `as_str` is False, returns the datetime object.
+    """
+    dt = datetime.datetime.fromtimestamp(timestamp)
+    return dt.strftime(fmt) if as_str else dt
