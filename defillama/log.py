@@ -4,7 +4,6 @@ import logging
 import sys
 from typing import Optional
 
-
 LOGGING_FORMATTER = (
     "[%(levelname)s] %(name)s %(asctime)s %(funcName)s:%(lineno)d - %(message)s"
 )

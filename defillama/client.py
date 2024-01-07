@@ -1,24 +1,24 @@
 import enum
+import uuid
 from functools import cached_property
 from typing import Any, Dict, List, Optional, Union
-import uuid
+
 import requests
 from slugify import slugify
 
 from defillama.dtypes import Coin, UUIDstr
 from defillama.exc import InvalidResponseDataException
+from defillama.log import get_logger
 from defillama.utils import (
     get_bridge_id,
+    get_coingecko_coin_ids,
     get_previous_timestamp,
     get_retry_session,
     get_stablecoin_id,
-    get_coingecko_coin_ids,
-    read_coingecko_ids_from_file,
     prepare_coins_for_request,
+    read_coingecko_ids_from_file,
     validate_searched_entity,
 )
-from defillama.log import get_logger
-
 
 log = get_logger(__name__)
 

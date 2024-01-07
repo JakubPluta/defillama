@@ -1,14 +1,15 @@
 import datetime
 import json
 import pathlib
-from typing import Dict, Union, List
+from typing import Dict, List, Union
+
 import requests
-from requests.adapters import HTTPAdapter
 from requests import HTTPError
+from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
+
 from defillama.dtypes import Coin
 from defillama.log import get_logger
-
 
 log = get_logger(__name__)
 
