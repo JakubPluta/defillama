@@ -1,6 +1,7 @@
 import json
 from unittest.mock import mock_open, patch
 import pytest
+from defillama.client import DefiLlamaClient
 
 
 @pytest.fixture
@@ -14,3 +15,9 @@ def mock_coins_file(monkeypatch):
     coins_data = {"coins": ["bitcoin", "ethereum"]}
     mock_file = mock_open(read_data=json.dumps(coins_data))
     monkeypatch.setattr("builtins.open", mock_file)
+
+
+@pytest.fixture
+def dlclient():
+    # Replace YourClassName with the actual class name
+    return DefiLlamaClient()
