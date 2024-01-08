@@ -817,7 +817,7 @@ class DefiLlamaClient:
         exclude_total_data_chart: bool = True,
         exclude_total_data_chart_breakdown: bool = True,
         dataType: DexDataTypeEnum = "dailyVolume",
-    ):
+    ) -> Dict[Any, Any]:
         """
         List all DEXes for a specific chain with all summaries of their volumes and dataType history.
 

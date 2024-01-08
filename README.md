@@ -342,6 +342,111 @@ Retrieves a list of bridge transactions based on the specified criteria.
 {'tx_hash': '0x458bc85a857590a85bef7f8e7dfc4a67c60a8c0d16cab3383f823de228830e38', 'ts': '2024-01-08T15:43:23.000Z', 'tx_block': 18963268, 'tx_from': '0xB639039bd7ba74b21971bA4Eab89a6EEB9512c5C', 'tx_to': '0xa3A7B6F88361F48403514059F1F16C8E78d60EeC', 'token': '0x514910771AF9Ca656af840dff83E8264EcF986CA', 'amount': '1000000000000000000', 'is_deposit': True, 'chain': 'ethereum', 'bridge_name': 'arbitrum', 'usd_value': None}
 ```
 
+Retrieve all DEXes with all summaries of their volumes and dataType history.
+
+```Python
+>>> from defillama import DefiLlamaClient, Coin
+>>> client = DefiLlamaClient()
+>>> dex_volumes = client.get_dexes_volume_overview()
+>>> dex_volumes.keys()
+dict_keys(['totalDataChart', 'totalDataChartBreakdown', 'protocols', 'allChains', 'chain', 'total24h', 'total48hto24h', 'total7d', 'total14dto7d', 'total60dto30d', 'total30d', 'total1y', 'average1y', 'change_1d', 'change_7d', 'change_1m', 'totalVolume7d', 'totalVolume30d', 'change_7dover7d', 'change_30dover30d', 'breakdown24h'])
+```
+
+Retrieve all DEXes for a specific chain with all summaries of their volumes and dataType history.
+
+```Python
+>>> from defillama import DefiLlamaClient, Coin
+>>> client = DefiLlamaClient()
+# To get all available chains use: client.list_dex_chains()
+>>> chain = 'osmosis'
+>>> dex_volumes = client.get_dexes_volume_overview_for_chain(chain)
+>>> dex_volumes
+{'totalDataChart': [], 'totalDataChartBreakdown': [], 'protocols': [{'defillamaId': '383', 'name': 'Osmosis DEX', 'disabled': False, 'displayName': 'Osmosis DEX', 'module': 'osmosis', 'category': 'Dexes', 'logo': 'https://icons.llamao.fi/icons/protocols/osmosis-dex.jpg', 'change_1d': -30.2, 'change_7d': 66.12, 'change_1m': 102.38, 'change_7dover7d': 25.05, 'change_30dover30d': 151.18, 'total24h': 37482383.20423146, 'total48hto24h': 53696406.00738978, 'total7d': 334952155.6249361, 'total30d': 1301084253.332036, 'total14dto7d': 267846597.9014448, 'total60dto30d': 517982028.2959299, 'total1y': 4458728450.627966, 'average1y': 342979111.5867666, 'totalAllTime': 24896301747.20423, 'breakdown24h': {'osmosis': {'osmosis': 37482383.20423146}}, 'chains': ['Osmosis'], 'protocolType': 'protocol', 'methodologyURL': 'https://github.com/DefiLlama/dimension-adapters/blob/master/dexs/osmosis', 'methodology': {'UserFees': 'Swap fees paid by users', 'Fees': 'Swap fees paid by users', 'Revenue': 'Percentage of swap fees going to treasury and/or token holders', 'ProtocolRevenue': 'Percentage of swap fees going to treasury', 'HoldersRevenue': 'Money going to governance token holders', 'SupplySideRevenue': 'Liquidity providers revenue'}, 'latestFetchIsOk': True, 'dailyVolume': 37482383.20423146, 'totalVolume7d': 22562856.27460225, 'totalVolume30d': 18520905}], 'allChains': ['Ethereum', 'Polygon', 'Starknet', 'Arbitrum', 'Mixin', 'zkSync Era', 'Base', 'opBNB', 'Polygon zkEVM', 'BSC', 'KCC', 'Fantom', 'Kava', 'Acala', 'Sui', 'Mantle', 'Avalanche', 'Solana', 'Stacks', 'Algorand', 'CORE', 'Telos', 'Aurora', 'Horizen EON', 'MultiversX', 'Terra Classic', 'Terra2', 'Injective', 'Neutron', 'Velas', 'Aptos', 'Gnosis', 'Moonbeam', 'Optimism', 'smartBCH', 'Bitcoin', 'MEER', 'Canto', 'Cube', 'EnergyWeb', 'Radix', 'Fusion', 'OKTChain', 'Linea', 'Klaytn', 'Concordium', 'Cronos', 'Cardano', 'Harmony', 'EOS', 'Wax', 'DefiChain', 'Carbon', 'Persistence', 'Scroll', 'Manta', 'LightLink', 'Elastos', 'Fuse', 'IoTeX', 'Energi', 'Findora', 'XDC', 'NEO', 'Evmos', 'Boba', 'Moonriver', 'FunctionX', 'GodwokenV1', 'Hedera', 'Onus', 'Metis', 'MAP Relay Chain', 'CLV', 'Hydra', 'HydraDX', 'Bitgert', 'ICP', 'Flow', 'Meter', 'OntologyEVM', 'Ultron', 'JBC', 'Kardia', 'KARURA', 'Ronin', 'Mode', 'Tombchain', 'PulseChain', 'Viction', 'Stellar', 'Heco', 'Bittorrent', 'TON', 'Celo', 'Conflux', 'Milkomeda C1', 'EOS EVM', 'Oraichain', 'Near', 'Osmosis', 'Obyte', 'Syscoin', 'Rollux', 'ENULS', 'Tezos', 'Sora', 'Rangers', 'SXnetwork', 'ShimmerEVM', 'Neon', 'Callisto', 'Ergo', 'Step', 'Tron', 'Arbitrum Nova', 'ThunderCore', 'Oasys', 'Thorchain', 'Icon', 'Vision', 'VeChain', 'Wanchain', 'WEMIX3.0', 'Dogechain', 'Godwoken', 'zkSync Lite', 'Zilliqa', 'Juno'], 'chain': 'Osmosis', 'total24h': 37482383.20423146, 'total48hto24h': None, 'total7d': 334952155.6249361, 'total14dto7d': 267846597.9014448, 'total60dto30d': 517982028.2959299, 'total30d': 1301084253.332036, 'total1y': 4458728450.627966, 'average1y': 342979111.5867666, 'change_1d': -30.2, 'change_7d': 66.12, 'change_1m': 102.38, 'totalVolume7d': 22562856.27460225, 'totalVolume30d': 18520905, 'change_7dover7d': 25.05, 'change_30dover30d': 151.18, 'breakdown24h': None}
+```
+
+Retrieve the summary of the DEX volume with historical data for given protocol.
+
+```Python
+>>> from defillama import DefiLlamaClient, Coin
+>>> client = DefiLlamaClient()
+# To get all available protocols use: client.list_dex_protocols()
+>>> protocol = 'balancer-v2'
+>>> dex_volumes = client.get_summary_of_dex_volume_with_historical_data(protocol)
+>>> dex_volumes.keys()
+dict_keys(['defillamaId', 'name', 'displayName', 'disabled', 'logo', 'address', 'url', 'description', 'audits', 'category', 'twitter', 'audit_links', 'gecko_id', 'totalDataChart', 'totalDataChartBreakdown', 'total24h', 'total48hto24h', 'total14dto7d', 'totalAllTime', 'change_1d', 'module', 'protocolType', 'chains', 'methodologyURL', 'methodology', 'latestFetchIsOk', 'parentProtocol', 'childProtocols'])
+```
+
+Retrieve all options dexs along with summaries of their options and dataType history.
+
+
+```Python
+>>> from defillama import DefiLlamaClient, Coin
+>>> client = DefiLlamaClient()
+>>> dex_volumes = client.get_overview_dexes_options()
+>>> dex_volumes.keys()
+dict_keys(['totalDataChart', 'totalDataChartBreakdown', 'protocols', 'allChains', 'chain', 'total24h', 'total48hto24h', 'total7d', 'total14dto7d', 'total60dto30d', 'total30d', 'total1y', 'average1y', 'change_1d', 'change_7d', 'change_1m', 'totalVolume7d', 'totalVolume30d', 'change_7dover7d', 'change_30dover30d', 'breakdown24h', 'dailyPremiumVolume'])
+```
+
+Retrieve all options dexs along with summaries of their options and dataType history for specific chain.
+
+```Python
+>>> from defillama import DefiLlamaClient, Coin
+>>> client = DefiLlamaClient()
+# To get all available chains use: client.list_options_chains()
+>>> chain = 'bsc'
+>>> options_volumes = client.get_overview_dexes_options_for_chain(chain)
+>>> options_volumes
+{'totalDataChart': [], 'totalDataChartBreakdown': [], 'protocols': [{'defillamaId': '534', 'name': 'Thales', 'disabled': False, 'displayName': 'Thales', 'module': 'thales', 'category': 'Prediction Market', 'logo': 'https://icons.llamao.fi/icons/protocols/thales.png', 'change_1d': None, 'change_7d': None, 'change_1m': None, 'change_7dover7d': 0, 'change_30dover30d': 0, 'total24h': 0, 'total48hto24h': 0, 'total7d': 0, 'total30d': 0, 'total14dto7d': 0, 'total60dto30d': 0, 'total1y': 3444.9842889749316, 'average1y': 264.99879145961023, 'totalAllTime': 7402.343703935723, 'breakdown24h': {'bsc': {'thales': 0}}, 'chains': ['BSC'], 'protocolType': 'protocol', 'methodologyURL': 'https://github.com/DefiLlama/dimension-adapters/blob/master/options/thales', 'methodology': {}, 'latestFetchIsOk': True, 'dailyPremiumVolume': 0, 'totalVolume7d': 0, 'totalVolume30d': 0}], 'allChains': ['Ethereum', 'Arbitrum', 'Polygon', 'Optimism', 'Fantom', 'BSC', 'Sui'], 'chain': 'BSC', 'total24h': 1997.9062889538222, 'total48hto24h': None, 'total7d': 1997.9062889538222, 'total14dto7d': 0, 'total60dto30d': 99.89919288360352, 'total30d': 2057.0447988141764, 'total1y': 17953.493427723526, 'average1y': 1496.124452310293, 'change_1d': 0, 'change_7d': 0, 'change_1m': 0, 'totalVolume7d': 0, 'totalVolume30d': 0, 'change_7dover7d': 0, 'change_30dover30d': 1959.12, 'breakdown24h': None}
+```
+
+Retrieve the summary of options volume with historical data for a given protocol.
+To list available options protocols use: `client.list_options_protocols()`
+
+```Python
+>>> from defillama import DefiLlamaClient, Coin
+>>> client = DefiLlamaClient()
+# To get all available chains use: client.list_options_protocols()
+>>> protocol = 'hegic'
+>>> options_volumes = client.get_summary_of_options_volume_with_historical_data_for_protocol(protocol)
+>>> options_volumes.keys()
+dict_keys(['defillamaId', 'name', 'displayName', 'disabled', 'logo', 'address', 'url', 'description', 'audits', 'category', 'twitter', 'audit_links', 'gecko_id', 'totalDataChart', 'totalDataChartBreakdown', 'total24h', 'total48hto24h', 'total14dto7d', 'totalAllTime', 'change_1d', 'module', 'protocolType', 'chains', 'methodologyURL', 'methodology', 'latestFetchIsOk', 'childProtocols'])
+```
+
+Retrieve the fees and revenues for all protocols.
+
+```Python
+>>> from defillama import DefiLlamaClient, Coin
+>>> client = DefiLlamaClient()
+>>> fees = client.get_fees_and_revenues_for_all_protocols()
+>>> fees.keys()
+dict_keys(['totalDataChart', 'totalDataChartBreakdown', 'protocols', 'allChains', 'chain', 'total24h', 'total48hto24h', 'total7d', 'total14dto7d', 'total60dto30d', 'total30d', 'total1y', 'average1y', 'change_1d', 'change_7d', 'change_1m', 'totalVolume7d', 'totalVolume30d', 'change_7dover7d', 'change_30dover30d', 'breakdown24h', 'dailyRevenue', 'dailyUserFees', 'dailyHoldersRevenue', 'dailySupplySideRevenue', 'dailyProtocolRevenue', 'dailyBribesRevenue', 'dailyTokenTaxes'])
+```
+
+Retrieve fees and revenues for all protocols for a given chain.
+
+```Python
+>>> from defillama import DefiLlamaClient, Coin
+>>> client = DefiLlamaClient()
+# To get all available chains use: client.list_fees_chains()
+>>> chain = 'moonbeam'
+>>> fees = client.get_fees_and_revenues_for_all_protocols_for_chain(chain)
+>>> fees.keys()
+dict_keys(['totalDataChart', 'totalDataChartBreakdown', 'protocols', 'allChains', 'chain', 'total24h', 'total48hto24h', 'total7d', 'total14dto7d', 'total60dto30d', 'total30d', 'total1y', 'average1y', 'change_1d', 'change_7d', 'change_1m', 'totalVolume7d', 'totalVolume30d', 'change_7dover7d', 'change_30dover30d', 'breakdown24h', 'dailyRevenue', 'dailyUserFees', 'dailyHoldersRevenue', 'dailySupplySideRevenue', 'dailyProtocolRevenue'])
+```
+
+Retrieve the summary of fees and revenue for a specific protocol.
+
+```Python
+>>> from defillama import DefiLlamaClient, Coin
+>>> client = DefiLlamaClient()
+# To get all available chains use: client.list_fees_chains()
+>>> protocol = 'fantom'
+>>> fees = client.get_summary_of_protocols_fees_and_revenue(chain)
+>>> fees.keys()
+dict_keys(['defillamaId', 'name', 'displayName', 'disabled', 'logo', 'category', 'gecko_id', 'totalDataChart', 'totalDataChartBreakdown', 'total24h', 'total48hto24h', 'total14dto7d', 'totalAllTime', 'change_1d', 'module', 'protocolType', 'chains', 'methodologyURL', 'methodology', 'latestFetchIsOk', 'childProtocols'])
+```
+
+
 ## Run tests
 ```bash
 make test 
