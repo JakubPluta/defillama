@@ -698,3 +698,157 @@ def test_get_current_stablecoins_market_cap(dlclient, mock_get):
 
     assert market_cap == expected_result
     mock_get.assert_called_once_with(ApiSectionsEnum.STABLECOINS, "stablecoinchains")
+
+
+@pytest.mark.parametrize(
+    "stablecoin, stablecoin_id, expected_result",
+    [
+        (
+            123,
+            123,
+            [
+                {"date": "2021-01-01", "market_cap": 100000},
+                {"date": "2021-01-02", "market_cap": 200000},
+                {"date": "2021-01-03", "market_cap": 150000},
+            ],
+        ),
+        (
+            "USDT",
+            123,
+            [
+                {"date": "2021-01-01", "market_cap": 100000},
+                {"date": "2021-01-02", "market_cap": 200000},
+                {"date": "2021-01-03", "market_cap": 150000},
+            ],
+        ),
+        (
+            None,
+            None,
+            [
+                {"date": "2021-01-01", "market_cap": 100000},
+                {"date": "2021-01-02", "market_cap": 200000},
+                {"date": "2021-01-03", "market_cap": 150000},
+            ],
+        ),
+    ],
+)
+def test_get_stablecoin_historical_market_cap(
+    stablecoin, stablecoin_id, expected_result, mock_get, dlclient
+):
+    mock_get.return_value = expected_result
+    dlclient._stablecoins = {123: "USDT"}
+
+    result = dlclient.get_stablecoin_historical_market_cap(stablecoin)
+
+    dlclient._get.assert_called_once_with(
+        ApiSectionsEnum.STABLECOINS, "stablecoincharts", "all", stablecoin=stablecoin_id
+    )
+    assert result == expected_result
+
+
+@pytest.mark.parametrize(
+    "chain, stablecoin, stablecoin_id, expected_result",
+    [
+        (
+            "chain1",
+            "stablecoin1",
+            1,
+            [{"market_cap": 1000000}, {"market_cap": 2000000}],
+        ),
+        ("chain1", None, None, [{"market_cap": 1000000}, {"market_cap": 2000000}]),
+    ],
+)
+def test_get_stablecoins_historical_martket_cap_in_chain_valid_chain_and_stablecoin(
+    dlclient,
+    mock_get,
+    mock_chains,
+    mock_stablecoins,
+    chain,
+    stablecoin,
+    stablecoin_id,
+    expected_result,
+):
+    mock_get.return_value = expected_result
+
+    result = dlclient.get_stablecoins_historical_martket_cap_in_chain(chain, stablecoin)
+
+    assert result == expected_result
+    dlclient._get.assert_called_once_with(
+        ApiSectionsEnum.STABLECOINS, "stablecoincharts", chain, stablecoin=stablecoin_id
+    )
+
+
+def test_get_stablecoins_historical_martket_cap_in_chain_invalid_chain(
+    dlclient, mock_get, mock_chains, mock_stablecoins
+):
+    chain = "invalid_chain"
+    stablecoin = "stablecoin1"
+
+    with pytest.raises(ValueError):
+        dlclient.get_stablecoins_historical_martket_cap_in_chain(chain, stablecoin)
+
+
+@pytest.mark.parametrize(
+    "stablecoin, expected_stablecoin_id, expected_result",
+    [
+        (
+            "stablecoin1",
+            1,
+            {
+                "market_cap": 1000000,
+                "chain_distribution": {
+                    "Ethereum": 500000,
+                    "Binance Smart Chain": 500000,
+                },
+            },
+        )
+    ],
+)
+def test_get_stablecoins_historical_market_cap_and_chain_distribution(
+    dlclient,
+    mock_get,
+    stablecoin,
+    expected_stablecoin_id,
+    expected_result,
+    mock_stablecoins,
+):
+    # Mock the get_stablecoin_id and _get methods
+    dlclient.get_stablecoin_id = mock_get
+    dlclient._get = mock_get
+
+    dlclient.get_stablecoin_id.return_value = expected_stablecoin_id
+    dlclient._get.return_value = expected_result
+
+    result = dlclient.get_stablecoins_historical_market_cap_and_chain_distribution(
+        stablecoin
+    )
+
+    dlclient._get.assert_called_once_with(
+        ApiSectionsEnum.STABLECOINS, "stablecoin", expected_stablecoin_id
+    )
+
+    # Assert that the result is the expected result
+    assert result == expected_result
+
+
+def test_get_stablecoins_historical_prices(dlclient, mock_get):
+    # Set up mock _get method
+    mock_get.return_value = [
+        {"stablecoin": "USDT", "price": 1.0},
+        {"stablecoin": "DAI", "price": 1.01},
+        {"stablecoin": "USDC", "price": 1.02},
+    ]
+
+    # Call the function
+    result = dlclient.get_stablecoins_historical_prices()
+
+    # Assert that the _get method was called with the correct arguments
+    mock_get.assert_called_once_with(ApiSectionsEnum.STABLECOINS, "stablecoinprices")
+
+    # Assert that the result is the expected list of historical prices
+    expected_result = [
+        {"stablecoin": "USDT", "price": 1.0},
+        {"stablecoin": "DAI", "price": 1.01},
+        {"stablecoin": "USDC", "price": 1.02},
+    ]
+    assert result == expected_result

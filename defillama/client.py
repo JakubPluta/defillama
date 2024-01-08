@@ -308,7 +308,7 @@ class DefiLlamaClient:
             for x in self.get_fees_and_revenues_for_all_protocols()["allChains"]
         ]
 
-    def list_protocols_slugs(self) -> List[str]:
+    def list_protocols(self) -> List[str]:
         """
         Returns a list of protocol slugs.
 
@@ -652,7 +652,6 @@ class DefiLlamaClient:
         try:
             uuid.UUID(pool)
         except ValueError as e:
-            log.debug("Invalid pool id: %s", pool)
             pool_id = next(
                 (
                     k
@@ -751,7 +750,7 @@ class DefiLlamaClient:
         end_timestamp: Optional[int] = None,
         source_chain: Optional[str] = None,
         address: Optional[str] = None,
-        limit: int = 200,
+        limit: int = 10,
     ) -> List[Dict[Any, Any]]:
         """
         Retrieves a list of bridge transactions based on the specified criteria.
@@ -764,7 +763,7 @@ class DefiLlamaClient:
             address (str, optional): Returns only transactions with specified address as "from" or "to".
                 Addresses are queried in the form {chain}:{address}, where chain is an identifier
                 such as ethereum, bsc, polygon, avax... .
-            limit (int, optional): The maximum number of transactions to retrieve. Defaults to 200.
+            limit (int, optional): The maximum number of transactions to retrieve. Defaults to 10.
 
         Returns:
             List[Dict[Any, Any]]: A list of bridge transactions matching the specified criteria.
