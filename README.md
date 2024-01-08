@@ -399,6 +399,7 @@ Retrieve all options dexs along with summaries of their options and dataType his
 {'totalDataChart': [], 'totalDataChartBreakdown': [], 'protocols': [{'defillamaId': '534', 'name': 'Thales', 'disabled': False, 'displayName': 'Thales', 'module': 'thales', 'category': 'Prediction Market', 'logo': 'https://icons.llamao.fi/icons/protocols/thales.png', 'change_1d': None, 'change_7d': None, 'change_1m': None, 'change_7dover7d': 0, 'change_30dover30d': 0, 'total24h': 0, 'total48hto24h': 0, 'total7d': 0, 'total30d': 0, 'total14dto7d': 0, 'total60dto30d': 0, 'total1y': 3444.9842889749316, 'average1y': 264.99879145961023, 'totalAllTime': 7402.343703935723, 'breakdown24h': {'bsc': {'thales': 0}}, 'chains': ['BSC'], 'protocolType': 'protocol', 'methodologyURL': 'https://github.com/DefiLlama/dimension-adapters/blob/master/options/thales', 'methodology': {}, 'latestFetchIsOk': True, 'dailyPremiumVolume': 0, 'totalVolume7d': 0, 'totalVolume30d': 0}], 'allChains': ['Ethereum', 'Arbitrum', 'Polygon', 'Optimism', 'Fantom', 'BSC', 'Sui'], 'chain': 'BSC', 'total24h': 1997.9062889538222, 'total48hto24h': None, 'total7d': 1997.9062889538222, 'total14dto7d': 0, 'total60dto30d': 99.89919288360352, 'total30d': 2057.0447988141764, 'total1y': 17953.493427723526, 'average1y': 1496.124452310293, 'change_1d': 0, 'change_7d': 0, 'change_1m': 0, 'totalVolume7d': 0, 'totalVolume30d': 0, 'change_7dover7d': 0, 'change_30dover30d': 1959.12, 'breakdown24h': None}
 ```
 
+
 Retrieve the summary of options volume with historical data for a given protocol.
 To list available options protocols use: `client.list_options_protocols()`
 
@@ -445,6 +446,162 @@ Retrieve the summary of fees and revenue for a specific protocol.
 >>> fees.keys()
 dict_keys(['defillamaId', 'name', 'displayName', 'disabled', 'logo', 'category', 'gecko_id', 'totalDataChart', 'totalDataChartBreakdown', 'total24h', 'total48hto24h', 'total14dto7d', 'totalAllTime', 'change_1d', 'module', 'protocolType', 'chains', 'methodologyURL', 'methodology', 'latestFetchIsOk', 'childProtocols'])
 ```
+
+Retrieve the current prices of tokens by contract address.
+To see all available chains use `client.list_chains()`
+To see all available coingecko ids use `client.get_coingecko_coin_ids()`
+You can use coingecko as a chain, and then use coin gecko ids instead of contract addresses:
+`coins = "coingecko:uniswap,coingecko:ethereum"` or `coins = Coin("coingecko:uniswap")` or
+`coins = {"chain": "coingecko", "address": "uniswap"}`
+
+```Python
+>>> from defillama import DefiLlamaClient, Coin
+>>> client = DefiLlamaClient()
+
+# Use string with chain:address,chain:address syntax as an input parameter
+>>> coins = "ethereum:0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984,coingecko:ethereum"
+>>> prices = client.get_current_prices_of_tokens_by_contract_address(coins)
+
+# Use list of dictionaries as input parameter
+>>> coins = [{"chain": "ethereum","address": "0xdF574c24545E5FfEcb9a659c229253D4111d87e1"},{"chain": "coingecko","address": "uniswap"}]
+>>> prices = client.get_current_prices_of_tokens_by_contract_address(coins)
+
+# It can also be a single dict
+>>> coin = {"chain": "ethereum","address": "0xdF574c24545E5FfEcb9a659c229253D4111d87e1"}
+>>> prices = client.get_current_prices_of_tokens_by_contract_address(coins)
+
+# Or use Coin named tuple 
+>>> coins = [Coin("ethereum", "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984"), Coin("bsc", "0x762539b45a1dcce3d36d080f74d1aed37844b878")]
+>>> prices = client.get_current_prices_of_tokens_by_contract_address(coins)
+
+# Or single Coin
+>>> prices = client.get_current_prices_of_tokens_by_contract_address(Coin("ethereum", "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984"))
+>>> prices
+{'coins': {'ethereum:0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984': {'decimals': 18, 'symbol': 'UNI', 'price': 6.24, 'timestamp': 1704744330, 'confidence': 0.99}}}
+```
+
+
+Retrieve the historical prices of tokens by contract address.
+
+```Python
+>>> from defillama import DefiLlamaClient, Coin
+>>> client = DefiLlamaClient()
+
+# Use string with chain:address,chain:address syntax as an input parameter
+>>> coins = "ethereum:0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984,coingecko:ethereum"
+>>> prices = client.get_historical_prices_of_tokens_by_contract_address(coins, timestamp=1650000000)
+
+# Use list of dictionaries as input parameter
+>>> coins = [{"chain": "ethereum","address": "0xdF574c24545E5FfEcb9a659c229253D4111d87e1"},{"chain": "coingecko","address": "uniswap"}]
+>>> prices = client.get_historical_prices_of_tokens_by_contract_address(coins, timestamp=1650000000)
+
+# It can also be a single dict
+>>> coin = {"chain": "ethereum","address": "0xdF574c24545E5FfEcb9a659c229253D4111d87e1"}
+>>> prices = client.get_historical_prices_of_tokens_by_contract_address(coins, timestamp=1650000000)
+
+# Or use Coin named tuple 
+>>> coins = [Coin("ethereum", "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984"), Coin("bsc", "0x762539b45a1dcce3d36d080f74d1aed37844b878")]
+>>> prices = client.get_historical_prices_of_tokens_by_contract_address(coins, timestamp=1650000000)
+
+# Or single Coin
+>>> prices = client.get_historical_prices_of_tokens_by_contract_address(Coin("ethereum", "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984"), timestamp=1650000000)
+>>> prices
+{'coins': {'ethereum:0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984': {'decimals': 18, 'symbol': 'UNI', 'price': 9.778883768551262, 'timestamp': 1649999936}}}
+```
+
+Retrieve token prices at regular time intervals.
+
+```Python
+>>> from defillama import DefiLlamaClient, Coin
+>>> client = DefiLlamaClient()
+
+# Use string with chain:address,chain:address syntax as an input parameter
+>>> coins = "ethereum:0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984,coingecko:ethereum"
+>>> prices = client.get_token_prices_candle(coins)
+
+# Use list of dictionaries as input parameter
+>>> coins = [{"chain": "ethereum","address": "0xdF574c24545E5FfEcb9a659c229253D4111d87e1"},{"chain": "coingecko","address": "uniswap"}]
+>>> prices = client.get_token_prices_candle(coins)
+
+# It can also be a single dict
+>>> coin = {"chain": "ethereum","address": "0xdF574c24545E5FfEcb9a659c229253D4111d87e1"}
+>>> prices = client.get_token_prices_candle(coins)
+
+# Or use Coin named tuple 
+>>> coins = [Coin("ethereum", "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984"), Coin("bsc", "0x762539b45a1dcce3d36d080f74d1aed37844b878")]
+>>> prices = client.get_token_prices_candle(coins)
+
+# Or single Coin
+>>> prices = client.get_token_prices_candle(Coin("ethereum", "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984"))
+>>> prices
+{'coins': {'ethereum:0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984': {'symbol': 'UNI', 'confidence': 0.99, 'decimals': 18, 'prices': [{'timestamp': 1704744928, 'price': 6.22}]}}}
+```
+
+Retrieve token price percentage change over time.
+
+```Python
+>>> from defillama import DefiLlamaClient, Coin
+>>> client = DefiLlamaClient()
+
+# Use string with chain:address,chain:address syntax as an input parameter
+>>> coins = "ethereum:0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984,coingecko:ethereum"
+>>> prices = client.get_percentage_change_in_coin_price(coins)
+
+# Use list of dictionaries as input parameter
+>>> coins = [{"chain": "ethereum","address": "0xdF574c24545E5FfEcb9a659c229253D4111d87e1"},{"chain": "coingecko","address": "uniswap"}]
+>>> prices = client.get_percentage_change_in_coin_price(coins)
+
+# It can also be a single dict
+>>> coin = {"chain": "ethereum","address": "0xdF574c24545E5FfEcb9a659c229253D4111d87e1"}
+>>> prices = client.get_percentage_change_in_coin_price(coins)
+
+# Or use Coin named tuple 
+>>> coins = [Coin("ethereum", "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984"), Coin("bsc", "0x762539b45a1dcce3d36d080f74d1aed37844b878")]
+>>> prices = client.get_percentage_change_in_coin_price(coins)
+
+# Or single Coin
+>>> prices = client.get_percentage_change_in_coin_price(Coin("ethereum", "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984"))
+>>> prices
+{'coins': {'ethereum:0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984': 0.16155039918093603}}
+```
+
+Retrieve the earliest timestamped price record for the given coins.
+
+```Python
+>>> from defillama import DefiLlamaClient, Coin
+>>> client = DefiLlamaClient()
+
+# Use string with chain:address,chain:address syntax as an input parameter
+>>> coins = "ethereum:0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984,coingecko:ethereum"
+>>> prices = client.get_earliest_timestamp_price_record_for_coins(coins)
+
+# Use list of dictionaries as input parameter
+>>> coins = [{"chain": "ethereum","address": "0xdF574c24545E5FfEcb9a659c229253D4111d87e1"},{"chain": "coingecko","address": "uniswap"}]
+>>> prices = client.get_earliest_timestamp_price_record_for_coins(coins)
+
+# It can also be a single dict
+>>> coin = {"chain": "ethereum","address": "0xdF574c24545E5FfEcb9a659c229253D4111d87e1"}
+>>> prices = client.get_earliest_timestamp_price_record_for_coins(coins)
+
+# Or use Coin named tuple 
+>>> coins = [Coin("ethereum", "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984"), Coin("bsc", "0x762539b45a1dcce3d36d080f74d1aed37844b878")]
+>>> prices = client.get_earliest_timestamp_price_record_for_coins(coins)
+
+# Or single Coin
+>>> prices = client.get_earliest_timestamp_price_record_for_coins(Coin("ethereum", "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984"))
+>>> prices
+{'coins': {'ethereum:0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984': {'symbol': 'UNI', 'price': 2.9696706531528196, 'timestamp': 1600308306}, 'coingecko:ethereum': {'symbol': 'ETH', 'price': 2.83162, 'timestamp': 1438905600}}}
+```
+
+Retrieve the closest block to the given timestamp for a specific chain.
+
+```Python
+>>> from defillama import DefiLlamaClient, Coin
+>>> client = DefiLlamaClient()
+>>> chain = 'ethereum'
+>>> prices = client.get_the_closest_block_to_timestamp(chain, timestamp=1600308306)
+>>> prices
+{'height': 10876852, 'timestamp': 1600308344}
 
 
 ## Run tests
