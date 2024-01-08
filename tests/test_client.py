@@ -337,7 +337,7 @@ def test_fees_chains(mock_get, chains_data, expected_result):
 
 def test_list_protocols_slugs(mock_protocols):
     client = DefiLlamaClient()
-    result = client.list_protocols_slugs()
+    result = client.list_protocols()
     assert result == ["protocol1", "protocol2"]
 
 
@@ -812,7 +812,6 @@ def test_get_stablecoins_historical_market_cap_and_chain_distribution(
     expected_result,
     mock_stablecoins,
 ):
-    # Mock the get_stablecoin_id and _get methods
     dlclient.get_stablecoin_id = mock_get
     dlclient._get = mock_get
 
@@ -832,23 +831,111 @@ def test_get_stablecoins_historical_market_cap_and_chain_distribution(
 
 
 def test_get_stablecoins_historical_prices(dlclient, mock_get):
-    # Set up mock _get method
     mock_get.return_value = [
         {"stablecoin": "USDT", "price": 1.0},
         {"stablecoin": "DAI", "price": 1.01},
         {"stablecoin": "USDC", "price": 1.02},
     ]
 
-    # Call the function
     result = dlclient.get_stablecoins_historical_prices()
 
-    # Assert that the _get method was called with the correct arguments
     mock_get.assert_called_once_with(ApiSectionsEnum.STABLECOINS, "stablecoinprices")
 
-    # Assert that the result is the expected list of historical prices
     expected_result = [
         {"stablecoin": "USDT", "price": 1.0},
         {"stablecoin": "DAI", "price": 1.01},
         {"stablecoin": "USDC", "price": 1.02},
     ]
+    assert result == expected_result
+
+
+def test_get_pools(dlclient, mock_get):
+    mock_get.return_value = {
+        "data": [
+            {"pool_id": 1, "name": "Pool 1"},
+            {"pool_id": 2, "name": "Pool 2"},
+            {"pool_id": 3, "name": "Pool 3"},
+        ]
+    }
+
+    result = dlclient.get_pools()
+
+    mock_get.assert_called_once_with(ApiSectionsEnum.YIELDS, "pools")
+
+    expected_result = [
+        {"pool_id": 1, "name": "Pool 1"},
+        {"pool_id": 2, "name": "Pool 2"},
+        {"pool_id": 3, "name": "Pool 3"},
+    ]
+    assert result == expected_result
+
+
+def test_get_pool_historical_apy_and_tvl(dlclient, mock_get, mock_pools):
+    mock_get.return_value = {
+        "data": [
+            {"date": "2022-01-01", "apy": 0.05, "tvl": 1000000},
+            {"date": "2022-01-02", "apy": 0.06, "tvl": 1100000},
+            {"date": "2022-01-03", "apy": 0.07, "tvl": 1200000},
+        ]
+    }
+
+    result = dlclient.get_pool_historical_apy_and_tvl("symbol1")
+
+    mock_get.assert_called_once_with(ApiSectionsEnum.YIELDS, "chart", "pool1")
+    expected_result = [
+        {"date": "2022-01-01", "apy": 0.05, "tvl": 1000000},
+        {"date": "2022-01-02", "apy": 0.06, "tvl": 1100000},
+        {"date": "2022-01-03", "apy": 0.07, "tvl": 1200000},
+    ]
+    assert result == expected_result
+
+
+def test_get_bridges(dlclient, mock_get):
+    mock_get.return_value = {
+        "bridges": [
+            {"name": "Bridge 1", "volume": 1000000},
+            {"name": "Bridge 2", "volume": 2000000},
+            {"name": "Bridge 3", "volume": 3000000},
+        ]
+    }
+
+    result = dlclient.get_bridges()
+
+    mock_get.assert_called_once_with(
+        ApiSectionsEnum.BRIDGES, "bridges", includeChains=True
+    )
+
+    expected_result = [
+        {"name": "Bridge 1", "volume": 1000000},
+        {"name": "Bridge 2", "volume": 2000000},
+        {"name": "Bridge 3", "volume": 3000000},
+    ]
+    assert result == expected_result
+
+
+def test_get_bridge(dlclient, mock_get, mock_get_bridge_id, mock_bridges):
+    mock_get_bridge_id.return_value = "bridge_id"
+    mock_get.return_value = {
+        "bridge_id": "bridge_id",
+        "volume": 1000000,
+        "volume_breakdown": {
+            "chain1": 500000,
+            "chain2": 500000,
+        },
+    }
+
+    result = dlclient.get_bridge("Bridge 1")
+
+    mock_get_bridge_id.assert_called_once_with("Bridge 1", dlclient._bridges)
+
+    mock_get.assert_called_once_with(ApiSectionsEnum.BRIDGES, "bridge", "bridge_id")
+
+    expected_result = {
+        "bridge_id": "bridge_id",
+        "volume": 1000000,
+        "volume_breakdown": {
+            "chain1": 500000,
+            "chain2": 500000,
+        },
+    }
     assert result == expected_result

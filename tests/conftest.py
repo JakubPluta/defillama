@@ -19,7 +19,6 @@ def mock_coins_file(monkeypatch):
 
 @pytest.fixture
 def dlclient():
-    # Replace YourClassName with the actual class name
     return DefiLlamaClient()
 
 
@@ -119,3 +118,8 @@ def mock_fees_chains():
         "defillama.client.DefiLlamaClient._fees_chains", ["fees_chain1", "fees_chain2"]
     ):
         yield
+
+
+@pytest.fixture
+def mock_get_bridge_id(mocker):
+    return mocker.patch("defillama.client.get_bridge_id")
