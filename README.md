@@ -1,7 +1,7 @@
 # DefiLlama (dfllama)
 
-[![codecov](https://codecov.io/gh/JakubPluta/defillama/graph/badge.svg?token=736JAQGR1C)](https://codecov.io/gh/JakubPluta/defillama)
-[![PyPI version](https://badge.fury.io/py/defillama.svg)](https://badge.fury.io/py/defillama)
+[![codecov](https://codecov.io/gh/JakubPluta/defillama/graph/badge.svg?token=LSF4LTJFF8)](https://codecov.io/gh/JakubPluta/defillama)
+[![PyPI version](https://badge.fury.io/py/dfllama.svg)](https://badge.fury.io/py/dfllama)
 <a target="new" href="https://github.com/JakubPluta/defillama"><img border=0 src="https://img.shields.io/github/stars/JakubPluta/defillama.svg?style=social&label=Star&maxAge=60" alt="Star this repo"></a>
 
 
