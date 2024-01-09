@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "defillama"
-version = "0.1.0"
+version = "0.1.1"
 description = "Python Api Wrapper for DefiLlama API"
 authors = ["Jakub Pluta <plutakuba@gmail.com>"]
 license = "MIT"
