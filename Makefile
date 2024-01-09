@@ -1,8 +1,8 @@
 pretty:
-	isort defillama/ && isort tests/
-	black defillama/ && black tests/
+	isort dfllama/ && isort tests/
+	black dfllama/ && black tests/
 
 test:
 	pytest tests/ -vv -ss
 cov:
-	coverage run --source=defillama -m pytest tests/ -vv -ss && coverage report -m
+	coverage run --source=dfllama -m pytest tests/ -vv -ss && coverage report -m

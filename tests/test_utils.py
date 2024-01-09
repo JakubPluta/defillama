@@ -6,9 +6,9 @@ import pytest
 import requests
 from requests.exceptions import HTTPError
 
-import defillama
-from defillama.dtypes import Coin
-from defillama.utils import (
+import dfllama
+from dfllama.dtypes import Coin
+from dfllama.utils import (
     _prepare_token,
     convert_from_timestamp,
     convert_to_timestamp,
@@ -147,7 +147,7 @@ def test_prepare_coins_for_request(coins, expected_result):
     assert prepare_coins_for_request(coins) == expected_result
 
 
-@mock.patch(f"{defillama.utils.__name__}.datetime", wraps=datetime)
+@mock.patch(f"{dfllama.utils.__name__}.datetime", wraps=datetime)
 def test_get_previous_timestamp(mock_datetime):
     mock_datetime.datetime.now.return_value = datetime.datetime(2022, 12, 31)
     assert get_previous_timestamp(90) == 1664665200

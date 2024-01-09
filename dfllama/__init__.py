@@ -1,11 +1,11 @@
-from defillama.client import (
+from dfllama.client import (
     ApiSectionsEnum,
     DefiLlamaClient,
     DexDataTypeEnum,
     FeesDataTypeEnum,
     OptionsDataTypeEnum,
 )
-from defillama.dtypes import Coin
+from dfllama.dtypes import Coin
 
 __all__ = [
     "DefiLlamaClient",

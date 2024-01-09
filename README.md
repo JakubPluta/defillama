@@ -1,4 +1,4 @@
-# DefiLlama
+# DefiLlama (dfllama)
 The Python wrapper for the Defi Llama API that provides open and transparent DeFi analytics. It allows you to easily access and retrieve data from the Defi Llama platform, which offers comprehensive insights into the decentralized finance ecosystem
 See more: [DefiLlama](https://defillama.com/)
 
@@ -14,7 +14,7 @@ See more: [DefiLlama](https://defillama.com/)
 ### Install with pip as package 
 
 ```bash
-pip install defillama
+pip install dfllama
 ```
 
 ### Install locally by cloning repository
@@ -41,14 +41,14 @@ poetry install
 
 Initialize client
 ```Python
->>> from defillama import DefiLlamaClient, Coin
+>>> from dfllama import DefiLlamaClient, Coin
 >>> client = DefiLlamaClient()
 ```
 
 Retrieve all protocols on Defi Llama along with their TVL.
 
 ```Python
->>> from defillama import DefiLlamaClient, Coin
+>>> from dfllama import DefiLlamaClient, Coin
 >>> client = DefiLlamaClient()
 >>> protocols = client.get_protocols()
 >>> protocols[0]
@@ -107,7 +107,7 @@ Retrieve all protocols on Defi Llama along with their TVL.
 
 Retrieve historical TVL of a protocol and breakdowns by token and chain.
 ```Python
->>> from defillama import DefiLlamaClient, Coin
+>>> from dfllama import DefiLlamaClient, Coin
 >>> client = DefiLlamaClient()
 # To check available protocol slugs you can use client.list_protocols()
 >>> protocol_slug = 'astroport'
@@ -119,7 +119,7 @@ dict_keys(['id', 'name', 'address', 'symbol', 'url', 'description', 'chain', 'lo
 Retrieve the historical total value locked (TVL) of decentralized finance (DeFi) on all chains. It excludes liquid staking and double counted tvl.
 
 ```Python
->>> from defillama import DefiLlamaClient, Coin
+>>> from dfllama import DefiLlamaClient, Coin
 >>> client = DefiLlamaClient()
 >>> defi_tvl = client.get_historical_tvl_of_defi_on_all_chains()
 >>> defi_tvl[0]
@@ -128,7 +128,7 @@ Retrieve the historical total value locked (TVL) of decentralized finance (DeFi)
 
 Retrieve the historical total value locked (TVL) for a specific chain.
 ```Python
->>> from defillama import DefiLlamaClient, Coin
+>>> from dfllama import DefiLlamaClient, Coin
 >>> client = DefiLlamaClient()
 # To see all available chains use client.list_chains() method
 >>> chain = 'karura'
@@ -139,7 +139,7 @@ Retrieve the historical total value locked (TVL) for a specific chain.
 
 Retrieve current total value locked (TVL) for a given protocol.
 ```Python
->>> from defillama import DefiLlamaClient, Coin
+>>> from dfllama import DefiLlamaClient, Coin
 >>> client = DefiLlamaClient()
 # To check available protocol slugs you can use client.list_protocols()
 >>> protocol_slug = 'astroport'
@@ -150,7 +150,7 @@ Retrieve current total value locked (TVL) for a given protocol.
 
 Retrieve current total value locked (TVL) of all chains.
 ```Python
->>> from defillama import DefiLlamaClient, Coin
+>>> from dfllama import DefiLlamaClient, Coin
 >>> client = DefiLlamaClient()
 >>> tvl = client.get_current_tvl_of_all_chains()
 >>> tvl[0]
@@ -159,7 +159,7 @@ Retrieve current total value locked (TVL) of all chains.
 
 Retrieve all stablecoins along with their circulating ammounts.
 ```Python
->>> from defillama import DefiLlamaClient, Coin
+>>> from dfllama import DefiLlamaClient, Coin
 >>> client = DefiLlamaClient()
 >>> stables = client.get_stablecoins()
 >>> stables[0]
@@ -184,7 +184,7 @@ Retrieve all stablecoins along with their circulating ammounts.
 
 Retrieve the current market capitalization of stablecoins on each chain.
 ```Python
->>> from defillama import DefiLlamaClient, Coin
+>>> from dfllama import DefiLlamaClient, Coin
 >>> client = DefiLlamaClient()
 >>> stables = client.get_current_stablecoins_market_cap()
 >>> stables[0]
@@ -193,7 +193,7 @@ Retrieve the current market capitalization of stablecoins on each chain.
 
 Retrieve the current market capitalization of stablecoins on each chain.
 ```Python
->>> from defillama import DefiLlamaClient, Coin
+>>> from dfllama import DefiLlamaClient, Coin
 >>> client = DefiLlamaClient()
 # To list stablecoins use client.list_stablecoins()
 >>> stablecoin = 'USDC'
@@ -205,7 +205,7 @@ Retrieve the current market capitalization of stablecoins on each chain.
 Retrieve the historical market cap and distribution of stablecoins in the specified blockchain.
 
 ```Python
->>> from defillama import DefiLlamaClient, Coin
+>>> from dfllama import DefiLlamaClient, Coin
 >>> client = DefiLlamaClient()
 >>> chain = 'ethereum'
 >>> stables = client.get_stablecoins_historical_martket_cap_in_chain(chain)
@@ -216,7 +216,7 @@ Retrieve the historical market cap and distribution of stablecoins in the specif
 Retrieve the historical market cap and chain distribution of a stablecoin.
 
 ```Python
->>> from defillama import DefiLlamaClient, Coin
+>>> from dfllama import DefiLlamaClient, Coin
 >>> client = DefiLlamaClient()
 >>> stablecoin = 'USDT'
 >>> stables = client.get_stablecoins_historical_market_cap_and_chain_distribution(stablecoin)
@@ -227,7 +227,7 @@ dict_keys(['id', 'name', 'address', 'symbol', 'url', 'description', 'mintRedeemD
 Retrieve the historical prices of stablecoins.
 
 ```Python
->>> from defillama import DefiLlamaClient, Coin
+>>> from dfllama import DefiLlamaClient, Coin
 >>> client = DefiLlamaClient()
 >>> stables = client.get_stablecoins_historical_prices()
 >>> stables[-1]
@@ -261,7 +261,7 @@ Retrieve the historical prices of stablecoins.
 Retrieve the latest data for all pools, including enriched information such as predictions
 
 ```Python
->>> from defillama import DefiLlamaClient, Coin
+>>> from dfllama import DefiLlamaClient, Coin
 >>> client = DefiLlamaClient()
 >>> pools = client.get_pools()
 >>> pools[0]
@@ -271,7 +271,7 @@ Retrieve the latest data for all pools, including enriched information such as p
 Retrieve the historical APY and TVL for a specific pool.
 
 ```Python
->>> from defillama import DefiLlamaClient, Coin
+>>> from dfllama import DefiLlamaClient, Coin
 >>> client = DefiLlamaClient()
 # To list all available pools: client.list_pools()
 >>> pool = 'USDC-WBTC' # by symbol or by id  pool = '1019c2a4-5330-467f-ad97-852448003878'
@@ -283,7 +283,7 @@ Retrieve the historical APY and TVL for a specific pool.
 Retrieve a list of bridges.
 
 ```Python
->>> from defillama import DefiLlamaClient, Coin
+>>> from dfllama import DefiLlamaClient, Coin
 >>> client = DefiLlamaClient()
 >>> bridges = client.get_bridges()
 >>> bridges[0]
@@ -293,7 +293,7 @@ Retrieve a list of bridges.
 Retrieve the summary od bridge volume and volume breakdown by chain.
 
 ```Python
->>> from defillama import DefiLlamaClient, Coin
+>>> from dfllama import DefiLlamaClient, Coin
 >>> client = DefiLlamaClient()
 # To list bridges use client.list_bridges()
 >>> bridge = 'zksync' # or by id bridge = 26
@@ -305,7 +305,7 @@ Retrieve the summary od bridge volume and volume breakdown by chain.
 Retrieve the volume of a bridge in a specific chain.
 
 ```Python
->>> from defillama import DefiLlamaClient, Coin
+>>> from dfllama import DefiLlamaClient, Coin
 >>> client = DefiLlamaClient()
 # To list dex chains use client.list_dex_chains()
 >>> chain = 'arbitrum' 
@@ -317,7 +317,7 @@ Retrieve the volume of a bridge in a specific chain.
 Retrieve the bridge day statistics for a specific timestamp, chain, and bridge.
 
 ```Python
->>> from defillama import DefiLlamaClient, Coin
+>>> from dfllama import DefiLlamaClient, Coin
 >>> client = DefiLlamaClient()
 # To list dex chains use client.list_dex_chains()
 >>> chain, ts = 'ethereum', 1665964800
@@ -329,7 +329,7 @@ Retrieve the bridge day statistics for a specific timestamp, chain, and bridge.
 Retrieves a list of bridge transactions based on the specified criteria.
 
 ```Python
->>> from defillama import DefiLlamaClient, Coin
+>>> from dfllama import DefiLlamaClient, Coin
 >>> client = DefiLlamaClient()
 # To list bridges use client.list_bridges()
 >>> bridge = 'arbitrum'
@@ -341,7 +341,7 @@ Retrieves a list of bridge transactions based on the specified criteria.
 Retrieve all DEXes with all summaries of their volumes and dataType history.
 
 ```Python
->>> from defillama import DefiLlamaClient, Coin
+>>> from dfllama import DefiLlamaClient, Coin
 >>> client = DefiLlamaClient()
 >>> dex_volumes = client.get_dexes_volume_overview()
 >>> dex_volumes.keys()
@@ -351,7 +351,7 @@ dict_keys(['totalDataChart', 'totalDataChartBreakdown', 'protocols', 'allChains'
 Retrieve all DEXes for a specific chain with all summaries of their volumes and dataType history.
 
 ```Python
->>> from defillama import DefiLlamaClient, Coin
+>>> from dfllama import DefiLlamaClient, Coin
 >>> client = DefiLlamaClient()
 # To get all available chains use: client.list_dex_chains()
 >>> chain = 'osmosis'
@@ -363,7 +363,7 @@ Retrieve all DEXes for a specific chain with all summaries of their volumes and 
 Retrieve the summary of the DEX volume with historical data for given protocol.
 
 ```Python
->>> from defillama import DefiLlamaClient, Coin
+>>> from dfllama import DefiLlamaClient, Coin
 >>> client = DefiLlamaClient()
 # To get all available protocols use: client.list_dex_protocols()
 >>> protocol = 'balancer-v2'
@@ -376,7 +376,7 @@ Retrieve all options dexs along with summaries of their options and dataType his
 
 
 ```Python
->>> from defillama import DefiLlamaClient, Coin
+>>> from dfllama import DefiLlamaClient, Coin
 >>> client = DefiLlamaClient()
 >>> dex_volumes = client.get_overview_dexes_options()
 >>> dex_volumes.keys()
@@ -386,7 +386,7 @@ dict_keys(['totalDataChart', 'totalDataChartBreakdown', 'protocols', 'allChains'
 Retrieve all options dexs along with summaries of their options and dataType history for specific chain.
 
 ```Python
->>> from defillama import DefiLlamaClient, Coin
+>>> from dfllama import DefiLlamaClient, Coin
 >>> client = DefiLlamaClient()
 # To get all available chains use: client.list_options_chains()
 >>> chain = 'bsc'
@@ -400,7 +400,7 @@ Retrieve the summary of options volume with historical data for a given protocol
 To list available options protocols use: `client.list_options_protocols()`
 
 ```Python
->>> from defillama import DefiLlamaClient, Coin
+>>> from dfllama import DefiLlamaClient, Coin
 >>> client = DefiLlamaClient()
 # To get all available chains use: client.list_options_protocols()
 >>> protocol = 'hegic'
@@ -412,7 +412,7 @@ dict_keys(['defillamaId', 'name', 'displayName', 'disabled', 'logo', 'address', 
 Retrieve the fees and revenues for all protocols.
 
 ```Python
->>> from defillama import DefiLlamaClient, Coin
+>>> from dfllama import DefiLlamaClient, Coin
 >>> client = DefiLlamaClient()
 >>> fees = client.get_fees_and_revenues_for_all_protocols()
 >>> fees.keys()
@@ -422,7 +422,7 @@ dict_keys(['totalDataChart', 'totalDataChartBreakdown', 'protocols', 'allChains'
 Retrieve fees and revenues for all protocols for a given chain.
 
 ```Python
->>> from defillama import DefiLlamaClient, Coin
+>>> from dfllama import DefiLlamaClient, Coin
 >>> client = DefiLlamaClient()
 # To get all available chains use: client.list_fees_chains()
 >>> chain = 'moonbeam'
@@ -434,7 +434,7 @@ dict_keys(['totalDataChart', 'totalDataChartBreakdown', 'protocols', 'allChains'
 Retrieve the summary of fees and revenue for a specific protocol.
 
 ```Python
->>> from defillama import DefiLlamaClient, Coin
+>>> from dfllama import DefiLlamaClient, Coin
 >>> client = DefiLlamaClient()
 # To get all available chains use: client.list_fees_chains()
 >>> protocol = 'fantom'
@@ -451,7 +451,7 @@ You can use coingecko as a chain, and then use coin gecko ids instead of contrac
 `coins = {"chain": "coingecko", "address": "uniswap"}`
 
 ```Python
->>> from defillama import DefiLlamaClient, Coin
+>>> from dfllama import DefiLlamaClient, Coin
 >>> client = DefiLlamaClient()
 
 # Use string with chain:address,chain:address syntax as an input parameter
@@ -480,7 +480,7 @@ You can use coingecko as a chain, and then use coin gecko ids instead of contrac
 Retrieve the historical prices of tokens by contract address.
 
 ```Python
->>> from defillama import DefiLlamaClient, Coin
+>>> from dfllama import DefiLlamaClient, Coin
 >>> client = DefiLlamaClient()
 
 # Use string with chain:address,chain:address syntax as an input parameter
@@ -508,7 +508,7 @@ Retrieve the historical prices of tokens by contract address.
 Retrieve token prices at regular time intervals.
 
 ```Python
->>> from defillama import DefiLlamaClient, Coin
+>>> from dfllama import DefiLlamaClient, Coin
 >>> client = DefiLlamaClient()
 
 # Use string with chain:address,chain:address syntax as an input parameter
@@ -536,7 +536,7 @@ Retrieve token prices at regular time intervals.
 Retrieve token price percentage change over time.
 
 ```Python
->>> from defillama import DefiLlamaClient, Coin
+>>> from dfllama import DefiLlamaClient, Coin
 >>> client = DefiLlamaClient()
 
 # Use string with chain:address,chain:address syntax as an input parameter
@@ -564,7 +564,7 @@ Retrieve token price percentage change over time.
 Retrieve the earliest timestamped price record for the given coins.
 
 ```Python
->>> from defillama import DefiLlamaClient, Coin
+>>> from dfllama import DefiLlamaClient, Coin
 >>> client = DefiLlamaClient()
 
 # Use string with chain:address,chain:address syntax as an input parameter
@@ -592,7 +592,7 @@ Retrieve the earliest timestamped price record for the given coins.
 Retrieve the closest block to the given timestamp for a specific chain.
 
 ```Python
->>> from defillama import DefiLlamaClient, Coin
+>>> from dfllama import DefiLlamaClient, Coin
 >>> client = DefiLlamaClient()
 >>> chain = 'ethereum'
 >>> prices = client.get_the_closest_block_to_timestamp(chain, timestamp=1600308306)
@@ -609,7 +609,7 @@ pytest tests/ -vv -ss
 # pytest cov
 make cov
 # or 
-coverage run --source=defillama -m pytest tests/ -vv -ss && coverage report -m
+coverage run --source=dfllama -m pytest tests/ -vv -ss && coverage report -m
 ```
 
 

@@ -6,10 +6,10 @@ from typing import Any, Dict, List, Optional, Union
 import requests
 from slugify import slugify
 
-from defillama.dtypes import Coin, UUIDstr
-from defillama.exc import InvalidResponseDataException
-from defillama.log import get_logger
-from defillama.utils import (
+from dfllama.dtypes import Coin, UUIDstr
+from dfllama.exc import InvalidResponseDataException
+from dfllama.log import get_logger
+from dfllama.utils import (
     get_bridge_id,
     get_coingecko_coin_ids,
     get_previous_timestamp,

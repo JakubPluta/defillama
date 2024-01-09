@@ -4,8 +4,8 @@ import pytest
 import requests
 from requests import Response
 
-from defillama.client import ApiSectionsEnum, DefiLlamaClient
-from defillama.exc import InvalidResponseDataException
+from dfllama.client import ApiSectionsEnum, DefiLlamaClient
+from dfllama.exc import InvalidResponseDataException
 
 
 @pytest.mark.parametrize(
@@ -444,11 +444,9 @@ def test_list_fees_chains(mock_fees_chains):
     ],
 )
 def test_get_coingecko_coin_ids(skip, limit, from_gecko_api, expected_result):
-    with patch(
-        "defillama.client.get_coingecko_coin_ids"
-    ) as mock_get_coingecko_coin_ids:
+    with patch("dfllama.client.get_coingecko_coin_ids") as mock_get_coingecko_coin_ids:
         with patch(
-            "defillama.client.read_coingecko_ids_from_file"
+            "dfllama.client.read_coingecko_ids_from_file"
         ) as mock_read_coingecko_ids_from_file:
             mock_get_coingecko_coin_ids.return_value = expected_result
             mock_read_coingecko_ids_from_file.return_value = [
@@ -488,7 +486,7 @@ def test_get_protocols(dlclient):
         },
     ]
 
-    with patch("defillama.DefiLlamaClient._get") as mock_get:
+    with patch("dfllama.DefiLlamaClient._get") as mock_get:
         mock_get.return_value = expected_result
 
         protocols = dlclient.get_protocols()
@@ -504,7 +502,7 @@ def test_get_protocol(dlclient, mock_protocols, mock_get):
     }
 
     with patch(
-        "defillama.client.validate_searched_entity"
+        "dfllama.client.validate_searched_entity"
     ) as mock_validate_searched_entity:
         mock_validate_searched_entity.return_value = None
         mock_get.return_value = expected_result
@@ -536,7 +534,7 @@ def test_get_historical_tvl_of_defi_on_all_chains(dlclient):
         },
     ]
 
-    with patch("defillama.DefiLlamaClient._get") as mock_get:
+    with patch("dfllama.DefiLlamaClient._get") as mock_get:
         mock_get.return_value = expected_result
 
         historical_tvl = dlclient.get_historical_tvl_of_defi_on_all_chains()
@@ -562,11 +560,11 @@ def test_get_historical_tvl_for_chain(dlclient, mock_chains):
     ]
 
     with patch(
-        "defillama.client.validate_searched_entity"
+        "dfllama.client.validate_searched_entity"
     ) as mock_validate_searched_entity:
         mock_validate_searched_entity.return_value = None
 
-        with patch("defillama.client.DefiLlamaClient._get") as mock_get:
+        with patch("dfllama.client.DefiLlamaClient._get") as mock_get:
             mock_get.return_value = expected_result
 
             historical_tvl = dlclient.get_historical_tvl_for_chain(chain_slug)
@@ -592,11 +590,11 @@ def test_get_current_tvl_for_protocol(dlclient, mock_protocols):
     expected_result = 1000000000
 
     with patch(
-        "defillama.client.validate_searched_entity"
+        "dfllama.client.validate_searched_entity"
     ) as mock_validate_searched_entity:
         mock_validate_searched_entity.return_value = None
 
-        with patch("defillama.client.DefiLlamaClient._get") as mock_get:
+        with patch("dfllama.client.DefiLlamaClient._get") as mock_get:
             mock_get.return_value = expected_result
 
             current_tvl = dlclient.get_current_tvl_for_protocol(protocol_slug)
@@ -632,7 +630,7 @@ def test_get_current_tvl_of_all_chains(dlclient):
         # ... other dictionaries ...
     ]
 
-    with patch("defillama.DefiLlamaClient._get") as mock_get:
+    with patch("dfllama.DefiLlamaClient._get") as mock_get:
         mock_get.return_value = expected_result
 
         current_tvl = dlclient.get_current_tvl_of_all_chains()
