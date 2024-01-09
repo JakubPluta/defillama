@@ -1,4 +1,10 @@
 # DefiLlama (dfllama)
+
+[![codecov](https://codecov.io/gh/JakubPluta/defillama/graph/badge.svg?token=736JAQGR1C)](https://codecov.io/gh/JakubPluta/defillama)
+[![PyPI version](https://badge.fury.io/py/defillama.svg)](https://badge.fury.io/py/defillama)
+<a target="new" href="https://github.com/JakubPluta/defillama"><img border=0 src="https://img.shields.io/github/stars/JakubPluta/defillama.svg?style=social&label=Star&maxAge=60" alt="Star this repo"></a>
+
+
 The Python wrapper for the Defi Llama API that provides open and transparent DeFi analytics. It allows you to easily access and retrieve data from the Defi Llama platform, which offers comprehensive insights into the decentralized finance ecosystem
 See more: [DefiLlama](https://defillama.com/)
 
@@ -11,7 +17,7 @@ See more: [DefiLlama](https://defillama.com/)
 
 ## Installation
 
-### Install with pip as package 
+### Install with pip as a package [pip](https://pypi.org/project/dfllama)
 
 ```bash
 pip install dfllama
