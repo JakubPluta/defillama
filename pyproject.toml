@@ -12,10 +12,7 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
-packages = [
-    { include = "resources" },
-    { include = "resources/coingecko_ids.json"}
-]
+
 
 [tool.poetry.dependencies]
 python = "^3.10"
