@@ -1,6 +1,6 @@
 pretty:
-	isort defillama/ && isort defillama/
-	black defillama/ && black defillama/
+	isort defillama/ && isort tests/
+	black defillama/ && black tests/
 
 test:
 	pytest tests/ -vv -ss

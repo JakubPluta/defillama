@@ -2,24 +2,24 @@ import datetime
 from typing import Dict, Union
 from unittest import mock
 
-import requests
-import defillama
 import pytest
-
+import requests
 from requests.exceptions import HTTPError
+
+import defillama
+from defillama.dtypes import Coin
 from defillama.utils import (
+    _prepare_token,
     convert_from_timestamp,
     convert_to_timestamp,
+    get_bridge_id,
+    get_coingecko_coin_ids,
     get_previous_timestamp,
     get_retry_session,
     get_stablecoin_id,
     prepare_coins_for_request,
+    read_coingecko_ids_from_file,
 )
-from defillama.utils import get_coingecko_coin_ids
-from defillama.utils import read_coingecko_ids_from_file
-from defillama.utils import _prepare_token
-from defillama.dtypes import Coin
-from defillama.utils import get_bridge_id
 
 
 @pytest.mark.parametrize(

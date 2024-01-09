@@ -1,6 +1,8 @@
 import json
 from unittest.mock import mock_open, patch
+
 import pytest
+
 from defillama.client import DefiLlamaClient
 
 
@@ -123,3 +125,9 @@ def mock_fees_chains():
 @pytest.fixture
 def mock_get_bridge_id(mocker):
     return mocker.patch("defillama.client.get_bridge_id")
+
+
+@pytest.fixture
+def mock_validate_searched_entity():
+    with patch("defillama.client.validate_searched_entity") as mock:
+        yield mock

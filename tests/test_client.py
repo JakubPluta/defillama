@@ -1,9 +1,11 @@
 from unittest.mock import MagicMock, patch
-from defillama.exc import InvalidResponseDataException
+
 import pytest
-from requests import Response
 import requests
-from defillama.client import DefiLlamaClient, ApiSectionsEnum
+from requests import Response
+
+from defillama.client import ApiSectionsEnum, DefiLlamaClient
+from defillama.exc import InvalidResponseDataException
 
 
 @pytest.mark.parametrize(
@@ -939,3 +941,837 @@ def test_get_bridge(dlclient, mock_get, mock_get_bridge_id, mock_bridges):
         },
     }
     assert result == expected_result
+
+
+@pytest.mark.parametrize(
+    "chain, bridge, bridge_id, expected_volume",
+    [
+        ("dex_chain1", "bridge1", 1, [{"volume": 100}, {"volume": 200}]),
+        ("dex_chain2", None, None, [{"volume": 300}, {"volume": 400}]),
+    ],
+)
+def test_get_bridge_valid(
+    dlclient,
+    mock_get,
+    chain,
+    bridge,
+    bridge_id,
+    expected_volume,
+    mock_bridges,
+    mock_dex_chains,
+):
+    mock_get.return_value = expected_volume
+
+    result = dlclient.get_bridge_volume(chain, bridge)
+
+    mock_get.assert_called_once_with(
+        ApiSectionsEnum.BRIDGES, "bridgevolume", chain, id=bridge_id
+    )
+    assert result == expected_volume
+
+
+@pytest.mark.parametrize(
+    "chain, bridge",
+    [
+        ("invalid_chain", "bridge1"),
+        ("chain1", "bridge3"),
+    ],
+)
+def test_get_bridge_invalid(dlclient, mock_get, chain, bridge, mock_bridges):
+    with pytest.raises(ValueError):
+        dlclient.get_bridge_volume(chain, bridge)
+
+
+@pytest.mark.parametrize(
+    "chain, bridge, dex_chains, bridges, expected_volume",
+    [
+        (
+            "chain1",
+            "bridge1",
+            ["chain1", "chain2"],
+            [{"id": 1, "name": "bridge1"}, {"id": 2, "name": "bridge2"}],
+            [{"volume": 100}, {"volume": 200}],
+        ),
+        (
+            "chain2",
+            None,
+            ["chain1", "chain2"],
+            [{"id": 1, "name": "bridge1"}, {"id": 2, "name": "bridge2"}],
+            [{"volume": 300}, {"volume": 400}],
+        ),
+    ],
+)
+def test_get_bridge_volume_valid(
+    dlclient,
+    mock_validate_searched_entity,
+    mock_get_bridge_id,
+    mock_get,
+    chain,
+    bridge,
+    dex_chains,
+    bridges,
+    expected_volume,
+):
+    mock_validate_searched_entity.return_value = None
+    mock_get_bridge_id.return_value = 1 if bridge == "bridge1" else None
+    mock_get.return_value = expected_volume
+
+    dlclient._dex_chains = dex_chains
+    dlclient._bridges = bridges
+    result = dlclient.get_bridge_volume(chain, bridge)
+
+    mock_validate_searched_entity.assert_called_once_with(chain, dex_chains, "chain")
+    if bridge is not None:
+        mock_get_bridge_id.assert_called_once_with(bridge, bridges)
+    else:
+        mock_get_bridge_id.assert_not_called()
+    mock_get.assert_called_once_with(
+        ApiSectionsEnum.BRIDGES,
+        "bridgevolume",
+        chain,
+        id=1 if bridge == "bridge1" else None,
+    )
+    assert result == expected_volume
+
+
+@pytest.mark.parametrize(
+    "chain, bridge, dex_chains, bridges",
+    [
+        (
+            "invalid_chain",
+            "bridge1",
+            ["chain1", "chain2"],
+            [{"id": 1, "name": "bridge1"}, {"id": 2, "name": "bridge2"}],
+        ),
+        (
+            "chain1",
+            "bridge3",
+            ["chain1", "chain2"],
+            [{"id": 1, "name": "bridge1"}, {"id": 2, "name": "bridge2"}],
+        ),
+    ],
+)
+def test_get_bridge_volume_invalid(
+    dlclient,
+    mock_validate_searched_entity,
+    mock_get_bridge_id,
+    mock_get,
+    chain,
+    bridge,
+    dex_chains,
+    bridges,
+):
+    mock_validate_searched_entity.side_effect = ValueError
+    mock_get_bridge_id.return_value = None
+
+    dlclient._dex_chains = dex_chains
+    dlclient._bridges = bridges
+
+    with pytest.raises(ValueError):
+        dlclient.get_bridge_volume(chain, bridge)
+
+
+@pytest.mark.parametrize(
+    "timestamp, chain, bridge, dex_chains, bridges, expected_stats",
+    [
+        (
+            1234567890,
+            "chain1",
+            "bridge1",
+            ["chain1", "chain2"],
+            [{"id": 1, "name": "bridge1"}, {"id": 2, "name": "bridge2"}],
+            [{"volume": 100}, {"volume": 200}],
+        ),
+        (
+            1234567890,
+            "chain2",
+            None,
+            ["chain1", "chain2"],
+            [{"id": 1, "name": "bridge1"}, {"id": 2, "name": "bridge2"}],
+            [{"volume": 300}, {"volume": 400}],
+        ),
+    ],
+)
+def test_get_bridge_day_stats_valid(
+    dlclient,
+    mock_validate_searched_entity,
+    mock_get_bridge_id,
+    mock_get,
+    timestamp,
+    chain,
+    bridge,
+    dex_chains,
+    bridges,
+    expected_stats,
+):
+    mock_validate_searched_entity.return_value = None
+    mock_get_bridge_id.return_value = 1 if bridge == "bridge1" else None
+    mock_get.return_value = expected_stats
+
+    dlclient._dex_chains = dex_chains
+    dlclient._bridges = bridges
+    result = dlclient.get_bridge_day_stats(timestamp, chain, bridge)
+
+    mock_validate_searched_entity.assert_called_once_with(chain, dex_chains, "chain")
+    if bridge is not None:
+        mock_get_bridge_id.assert_called_once_with(bridge, bridges)
+    else:
+        mock_get_bridge_id.assert_not_called()
+    mock_get.assert_called_once_with(
+        ApiSectionsEnum.BRIDGES,
+        "bridgedaystats",
+        timestamp,
+        chain,
+        id=1 if bridge == "bridge1" else None,
+    )
+    assert result == expected_stats
+
+
+@pytest.mark.parametrize(
+    "timestamp, chain, bridge, dex_chains, bridges",
+    [
+        (
+            1234567890,
+            "invalid_chain",
+            "bridge1",
+            ["chain1", "chain2"],
+            [{"id": 1, "name": "bridge1"}, {"id": 2, "name": "bridge2"}],
+        ),
+        (
+            1234567890,
+            "chain1",
+            "bridge3",
+            ["chain1", "chain2"],
+            [{"id": 1, "name": "bridge1"}, {"id": 2, "name": "bridge2"}],
+        ),
+    ],
+)
+def test_get_bridge_day_stats_invalid(
+    dlclient,
+    mock_validate_searched_entity,
+    mock_get_bridge_id,
+    mock_get,
+    timestamp,
+    chain,
+    bridge,
+    dex_chains,
+    bridges,
+):
+    mock_validate_searched_entity.side_effect = ValueError
+    mock_get_bridge_id.return_value = None
+
+    dlclient._dex_chains = dex_chains
+    dlclient._bridges = bridges
+
+    with pytest.raises(ValueError):
+        dlclient.get_bridge_day_stats(timestamp, chain, bridge)
+
+
+@pytest.mark.parametrize(
+    "bridge, start_timestamp, end_timestamp, source_chain, address, limit, expected_transactions",
+    [
+        (
+            "bridge1",
+            1234567890,
+            1234567999,
+            "chain1",
+            "ethereum:0x1234567890abcdef",
+            10,
+            [{"transaction_id": "tx1"}, {"transaction_id": "tx2"}],
+        ),
+        (
+            2,
+            None,
+            None,
+            None,
+            None,
+            20,
+            [{"transaction_id": "tx3"}, {"transaction_id": "tx4"}],
+        ),
+    ],
+)
+def test_get_bridge_transactions_valid(
+    dlclient,
+    mock_get_bridge_id,
+    mock_validate_searched_entity,
+    mock_get,
+    bridge,
+    start_timestamp,
+    end_timestamp,
+    source_chain,
+    address,
+    limit,
+    mock_bridges,
+    mock_dex_chains,
+    expected_transactions,
+):
+    _bridge_value = 1 if bridge == "bridge1" else 2
+    mock_get_bridge_id.return_value = _bridge_value
+    mock_validate_searched_entity.return_value = None
+    mock_get.return_value = expected_transactions
+
+    result = dlclient.get_bridge_transactions(
+        bridge,
+        start_timestamp=start_timestamp,
+        end_timestamp=end_timestamp,
+        source_chain=source_chain,
+        address=address,
+        limit=limit,
+    )
+
+    mock_get_bridge_id.assert_called_once()
+    if source_chain is not None:
+        mock_validate_searched_entity.assert_called_once_with(
+            source_chain, dlclient._dex_chains, "chain"
+        )
+    else:
+        mock_validate_searched_entity.assert_not_called()
+    mock_get.assert_called_once_with(
+        ApiSectionsEnum.BRIDGES,
+        "transactions",
+        _bridge_value,
+        starttimestamp=start_timestamp,
+        endtimestamp=end_timestamp,
+        sourcechain=source_chain,
+        address=address,
+        limit=limit,
+    )
+    assert result == expected_transactions
+
+
+def test_get_bridge_transactions_no_bridge(dlclient, mock_bridges, mock_dex_chains):
+    with pytest.raises(ValueError):
+        dlclient.get_bridge_transactions("not_existing_bridge")
+
+
+def test_get_bridge_transactions_invalid_source_chain(
+    dlclient, mock_get_bridge_id, mock_validate_searched_entity, mock_bridges
+):
+    mock_get_bridge_id.return_value = 1
+    mock_validate_searched_entity.side_effect = ValueError
+    with pytest.raises(ValueError):
+        dlclient.get_bridge_transactions("bridge1", source_chain="invalid_chain")
+
+
+@pytest.mark.parametrize(
+    "exclude_total_data_chart, exclude_total_data_chart_breakdown, data_type, expected_result",
+    [
+        (
+            True,
+            True,
+            "dailyVolume",
+            {
+                "dexs": [
+                    {"name": "dex1", "volume": 100},
+                    {"name": "dex2", "volume": 200},
+                ]
+            },
+        ),
+        (
+            False,
+            False,
+            "totalVolume",
+            {
+                "dexs": [
+                    {"name": "dex3", "volume": 300},
+                    {"name": "dex4", "volume": 400},
+                ]
+            },
+        ),
+    ],
+)
+def test_get_dexes_volume_overview(
+    dlclient,
+    mock_get,
+    exclude_total_data_chart,
+    exclude_total_data_chart_breakdown,
+    data_type,
+    expected_result,
+):
+    mock_get.return_value = expected_result
+
+    result = dlclient.get_dexes_volume_overview(
+        exclude_total_data_chart=exclude_total_data_chart,
+        exclude_total_data_chart_breakdown=exclude_total_data_chart_breakdown,
+        dataType=data_type,
+    )
+
+    mock_get.assert_called_once_with(
+        ApiSectionsEnum.VOLUMES,
+        "overview",
+        "dexs",
+        excludeTotalDataChart=exclude_total_data_chart,
+        excludeTotalDataChartBreakdown=exclude_total_data_chart_breakdown,
+        dataType=data_type,
+    )
+    assert result == expected_result
+
+
+@pytest.mark.parametrize(
+    "chain, exclude_total_data_chart, exclude_total_data_chart_breakdown, data_type, expected_result",
+    [
+        (
+            "chain1",
+            True,
+            True,
+            "dailyVolume",
+            {
+                "dexs": [
+                    {"name": "dex1", "volume": 100},
+                    {"name": "dex2", "volume": 200},
+                ]
+            },
+        ),
+        (
+            "chain2",
+            False,
+            False,
+            "totalVolume",
+            {
+                "dexs": [
+                    {"name": "dex3", "volume": 300},
+                    {"name": "dex4", "volume": 400},
+                ]
+            },
+        ),
+    ],
+)
+def test_get_dexes_volume_overview_for_chain(
+    dlclient,
+    mock_validate_searched_entity,
+    mock_get,
+    chain,
+    exclude_total_data_chart,
+    exclude_total_data_chart_breakdown,
+    data_type,
+    expected_result,
+    mock_dex_chains,
+):
+    mock_validate_searched_entity.return_value = None
+    mock_get.return_value = expected_result
+
+    result = dlclient.get_dexes_volume_overview_for_chain(
+        chain,
+        exclude_total_data_chart=exclude_total_data_chart,
+        exclude_total_data_chart_breakdown=exclude_total_data_chart_breakdown,
+        dataType=data_type,
+    )
+
+    mock_validate_searched_entity.assert_called_once_with(
+        chain, dlclient._dex_chains, "chain"
+    )
+    mock_get.assert_called_once_with(
+        ApiSectionsEnum.VOLUMES,
+        "overview",
+        "dexs",
+        chain,
+        excludeTotalDataChart=exclude_total_data_chart,
+        excludeTotalDataChartBreakdown=exclude_total_data_chart_breakdown,
+        dataType=data_type,
+    )
+    assert result == expected_result
+
+
+def test_get_dexes_volume_overview_for_chain_invalid_chain(
+    dlclient, mock_validate_searched_entity
+):
+    mock_validate_searched_entity.side_effect = ValueError
+
+    with pytest.raises(ValueError):
+        dlclient.get_dexes_volume_overview_for_chain("invalid_chain")
+
+
+@pytest.mark.parametrize(
+    "protocol, exclude_total_data_chart, exclude_total_data_chart_breakdown, data_type, expected_result",
+    [
+        (
+            "protocol1",
+            True,
+            True,
+            "dailyVolume",
+            {"summary": {"volume": 1000, "trades": 200}},
+        ),
+        (
+            "protocol2",
+            False,
+            False,
+            "totalVolume",
+            {"summary": {"volume": 3000, "trades": 400}},
+        ),
+    ],
+)
+def test_get_summary_of_dex_volume_with_historical_data(
+    dlclient,
+    mock_validate_searched_entity,
+    mock_get,
+    protocol,
+    exclude_total_data_chart,
+    exclude_total_data_chart_breakdown,
+    data_type,
+    expected_result,
+    mock_dex_protocols,
+):
+    mock_validate_searched_entity.return_value = None
+    mock_get.return_value = expected_result
+
+    result = dlclient.get_summary_of_dex_volume_with_historical_data(
+        protocol,
+        exclude_total_data_chart=exclude_total_data_chart,
+        exclude_total_data_chart_breakdown=exclude_total_data_chart_breakdown,
+        dataType=data_type,
+    )
+
+    mock_validate_searched_entity.assert_called_once_with(
+        protocol.lower(), dlclient._dex_protocols, "dex protocol"
+    )
+    mock_get.assert_called_once_with(
+        ApiSectionsEnum.VOLUMES,
+        "summary",
+        "dexs",
+        protocol,
+        excludeTotalDataChart=exclude_total_data_chart,
+        excludeTotalDataChartBreakdown=exclude_total_data_chart_breakdown,
+        dataType=data_type,
+    )
+    assert result == expected_result
+
+
+def test_get_summary_of_dex_volume_with_historical_data_invalid_protocol(
+    dlclient, mock_validate_searched_entity
+):
+    mock_validate_searched_entity.side_effect = ValueError
+
+    with pytest.raises(ValueError):
+        dlclient.get_summary_of_dex_volume_with_historical_data("invalid_protocol")
+
+
+@pytest.mark.parametrize(
+    "exclude_total_data_chart, exclude_total_data_chart_breakdown, data_type, expected_result",
+    [
+        (
+            True,
+            True,
+            "dailyPremiumVolume",
+            {
+                "options": [
+                    {"name": "option1", "volume": 100},
+                    {"name": "option2", "volume": 200},
+                ]
+            },
+        ),
+        (
+            False,
+            False,
+            "totalPremiumVolume",
+            {
+                "options": [
+                    {"name": "option3", "volume": 300},
+                    {"name": "option4", "volume": 400},
+                ]
+            },
+        ),
+    ],
+)
+def test_get_overview_dexes_options(
+    dlclient,
+    mock_get,
+    exclude_total_data_chart,
+    exclude_total_data_chart_breakdown,
+    data_type,
+    expected_result,
+):
+    mock_get.return_value = expected_result
+
+    result = dlclient.get_overview_dexes_options(
+        exclude_total_data_chart=exclude_total_data_chart,
+        exclude_total_data_chart_breakdown=exclude_total_data_chart_breakdown,
+        dataType=data_type,
+    )
+
+    mock_get.assert_called_once_with(
+        ApiSectionsEnum.VOLUMES,
+        "overview",
+        "options",
+        excludeTotalDataChart=exclude_total_data_chart,
+        excludeTotalDataChartBreakdown=exclude_total_data_chart_breakdown,
+        dataType=data_type,
+    )
+    assert result == expected_result
+
+
+@pytest.mark.parametrize(
+    "chain, exclude_total_data_chart, exclude_total_data_chart_breakdown, data_type, expected_result",
+    [
+        (
+            "chain1",
+            True,
+            True,
+            "dailyPremiumVolume",
+            {
+                "options": [
+                    {"name": "option1", "volume": 100},
+                    {"name": "option2", "volume": 200},
+                ]
+            },
+        ),
+        (
+            "chain2",
+            False,
+            False,
+            "totalPremiumVolume",
+            {
+                "options": [
+                    {"name": "option3", "volume": 300},
+                    {"name": "option4", "volume": 400},
+                ]
+            },
+        ),
+    ],
+)
+def test_get_overview_dexes_options_for_chain(
+    dlclient,
+    mock_validate_searched_entity,
+    mock_get,
+    chain,
+    exclude_total_data_chart,
+    exclude_total_data_chart_breakdown,
+    data_type,
+    expected_result,
+    mock_options_chains,
+    mock_options_protocols,
+):
+    mock_validate_searched_entity.return_value = None
+    mock_get.return_value = expected_result
+
+    result = dlclient.get_overview_dexes_options_for_chain(
+        chain,
+        exclude_total_data_chart=exclude_total_data_chart,
+        exclude_total_data_chart_breakdown=exclude_total_data_chart_breakdown,
+        dataType=data_type,
+    )
+
+    mock_validate_searched_entity.assert_called_once_with(
+        chain, dlclient._dex_options_chains, "chain"
+    )
+    mock_get.assert_called_once_with(
+        ApiSectionsEnum.VOLUMES,
+        "overview",
+        "options",
+        chain,
+        excludeTotalDataChart=exclude_total_data_chart,
+        excludeTotalDataChartBreakdown=exclude_total_data_chart_breakdown,
+        dataType=data_type,
+    )
+    assert result == expected_result
+
+
+def test_get_overview_dexes_options_for_chain_invalid_chain(
+    dlclient, mock_validate_searched_entity
+):
+    mock_validate_searched_entity.side_effect = ValueError
+
+    with pytest.raises(ValueError):
+        dlclient.get_overview_dexes_options_for_chain("invalid_chain")
+
+
+@pytest.mark.parametrize(
+    "protocol, data_type, expected_result",
+    [
+        (
+            "protocol1",
+            "dailyPremiumVolume",
+            {"summary": {"volume": 1000, "averageVolume": 200}},
+        ),
+        (
+            "protocol2",
+            "totalPremiumVolume",
+            {"summary": {"volume": 5000, "averageVolume": 1000}},
+        ),
+    ],
+)
+def test_get_summary_of_options_volume_with_historical_data_for_protocol(
+    dlclient,
+    mock_validate_searched_entity,
+    mock_get,
+    protocol,
+    data_type,
+    expected_result,
+    mock_options_protocols,
+    mock_options_chains,
+):
+    mock_validate_searched_entity.return_value = None
+    mock_get.return_value = expected_result
+
+    result = dlclient.get_summary_of_options_volume_with_historical_data_for_protocol(
+        protocol,
+        dataType=data_type,
+    )
+
+    mock_validate_searched_entity.assert_called_once_with(
+        protocol.lower(), dlclient._dex_options_protocols, "protocol"
+    )
+    mock_get.assert_called_once_with(
+        ApiSectionsEnum.VOLUMES,
+        "summary",
+        "options",
+        protocol,
+        dataType=data_type,
+    )
+    assert result == expected_result
+
+
+def test_get_summary_of_options_volume_with_historical_data_for_protocol_invalid_protocol(
+    dlclient, mock_validate_searched_entity
+):
+    mock_validate_searched_entity.side_effect = ValueError
+
+    with pytest.raises(ValueError):
+        dlclient.get_summary_of_options_volume_with_historical_data_for_protocol(
+            "invalid_protocol"
+        )
+
+
+@pytest.mark.parametrize(
+    "exclude_total_data_chart, exclude_total_data_chart_breakdown, data_type, expected_result",
+    [
+        (True, True, "dailyFees", {"fees": {"protocol1": 100, "protocol2": 200}}),
+        (False, False, "totalFees", {"fees": {"protocol3": 300, "protocol4": 400}}),
+    ],
+)
+def test_get_fees_and_revenues_for_all_protocols(
+    dlclient,
+    mock_get,
+    exclude_total_data_chart,
+    exclude_total_data_chart_breakdown,
+    data_type,
+    expected_result,
+):
+    mock_get.return_value = expected_result
+
+    result = dlclient.get_fees_and_revenues_for_all_protocols(
+        exclude_total_data_chart=exclude_total_data_chart,
+        exclude_total_data_chart_breakdown=exclude_total_data_chart_breakdown,
+        dataType=data_type,
+    )
+
+    mock_get.assert_called_once_with(
+        ApiSectionsEnum.FEES,
+        "overview",
+        "fees",
+        excludeTotalDataChart=exclude_total_data_chart,
+        excludeTotalDataChartBreakdown=exclude_total_data_chart_breakdown,
+        dataType=data_type,
+    )
+    assert result == expected_result
+
+
+@pytest.mark.parametrize(
+    "chain, exclude_total_data_chart, exclude_total_data_chart_breakdown, data_type, expected_result",
+    [
+        (
+            "chain1",
+            True,
+            True,
+            "dailyFees",
+            {"fees": {"protocol1": 100, "protocol2": 200}},
+        ),
+        (
+            "chain2",
+            False,
+            False,
+            "totalFees",
+            {"fees": {"protocol3": 300, "protocol4": 400}},
+        ),
+    ],
+)
+def test_get_fees_and_revenues_for_all_protocols_for_chain(
+    dlclient,
+    mock_validate_searched_entity,
+    mock_get,
+    chain,
+    exclude_total_data_chart,
+    exclude_total_data_chart_breakdown,
+    data_type,
+    expected_result,
+    mock_fees_chains,
+    mock_fees_protocols,
+):
+    mock_validate_searched_entity.return_value = None
+    mock_get.return_value = expected_result
+
+    result = dlclient.get_fees_and_revenues_for_all_protocols_for_chain(
+        chain,
+        exclude_total_data_chart=exclude_total_data_chart,
+        exclude_total_data_chart_breakdown=exclude_total_data_chart_breakdown,
+        dataType=data_type,
+    )
+
+    mock_validate_searched_entity.assert_called_once_with(
+        chain.lower(), dlclient._fees_chains, "chain"
+    )
+    mock_get.assert_called_once_with(
+        ApiSectionsEnum.FEES,
+        "overview",
+        "fees",
+        chain,
+        excludeTotalDataChart=exclude_total_data_chart,
+        excludeTotalDataChartBreakdown=exclude_total_data_chart_breakdown,
+        dataType=data_type,
+    )
+    assert result == expected_result
+
+
+def test_get_fees_and_revenues_for_all_protocols_for_chain_invalid_chain(
+    dlclient, mock_validate_searched_entity
+):
+    mock_validate_searched_entity.side_effect = ValueError
+
+    with pytest.raises(ValueError):
+        dlclient.get_fees_and_revenues_for_all_protocols_for_chain("invalid_chain")
+
+
+@pytest.mark.parametrize(
+    "protocol, data_type, expected_result",
+    [
+        ("protocol1", "dailyFees", {"fees": 100, "revenue": 200}),
+        ("protocol2", "totalFees", {"fees": 300, "revenue": 400}),
+    ],
+)
+def test_get_summary_of_protocols_fees_and_revenue(
+    dlclient,
+    mock_validate_searched_entity,
+    mock_get,
+    protocol,
+    data_type,
+    expected_result,
+    mock_fees_protocols,
+    mock_fees_chains,
+):
+    mock_validate_searched_entity.return_value = None
+    mock_get.return_value = expected_result
+
+    result = dlclient.get_summary_of_protocols_fees_and_revenue(
+        protocol,
+        dataType=data_type,
+    )
+
+    mock_validate_searched_entity.assert_called_once_with(
+        protocol.lower(), dlclient._fees_protocols, "protocol"
+    )
+    mock_get.assert_called_once_with(
+        ApiSectionsEnum.FEES,
+        "summary",
+        "fees",
+        protocol,
+        dataType=data_type,
+    )
+    assert result == expected_result
+
+
+def test_get_summary_of_protocols_fees_and_revenue_invalid_protocol(
+    dlclient, mock_validate_searched_entity
+):
+    mock_validate_searched_entity.side_effect = ValueError
+
+    with pytest.raises(ValueError):
+        dlclient.get_summary_of_protocols_fees_and_revenue("invalid_protocol")

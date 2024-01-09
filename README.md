@@ -1,5 +1,5 @@
 # DefiLlama
-Python wrapper do Defi Llama API - an open and transparent DeFi analytics.
+The Python wrapper for the Defi Llama API that provides open and transparent DeFi analytics. It allows you to easily access and retrieve data from the Defi Llama platform, which offers comprehensive insights into the decentralized finance ecosystem
 See more: [DefiLlama](https://defillama.com/)
 
 ## Table of Contents
@@ -34,10 +34,6 @@ pip install poetry
 
 # install packages
 poetry install
-```
-
-
-```Python
 ```
 
 
@@ -602,7 +598,7 @@ Retrieve the closest block to the given timestamp for a specific chain.
 >>> prices = client.get_the_closest_block_to_timestamp(chain, timestamp=1600308306)
 >>> prices
 {'height': 10876852, 'timestamp': 1600308344}
-
+```
 
 ## Run tests
 ```bash
@@ -625,3 +621,4 @@ You're welcome to add pull requests.
 ## Todo
 - Pagination (most endpoints doesn't support pagination, so it needs to be done on client side)
 - Possibility to use different types of data fromat/timestamp in some endpoints - with automatic conversion 
+- Add pandas support for analytics (Consider)

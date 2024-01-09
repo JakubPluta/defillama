@@ -1,9 +1,9 @@
 from defillama.client import (
-    DefiLlamaClient,
     ApiSectionsEnum,
+    DefiLlamaClient,
     DexDataTypeEnum,
-    OptionsDataTypeEnum,
     FeesDataTypeEnum,
+    OptionsDataTypeEnum,
 )
 from defillama.dtypes import Coin
 
