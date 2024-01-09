@@ -13,7 +13,7 @@ from defillama.log import get_logger
 
 log = get_logger(__name__)
 
-PROJECT_ROOT = pathlib.Path(__file__).parent.parent
+PROJECT_ROOT = pathlib.Path(__file__).parent
 RESOURCES_DIR = PROJECT_ROOT / "resources"
 
 
